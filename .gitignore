@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.wrangler/
 playwright-report/
 test-results/
 tsconfig.tsbuildinfo

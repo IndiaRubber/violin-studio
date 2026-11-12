@@ -25,3 +25,10 @@ Use a conventional chromatic tuner as a reference. Tune the same real violin wit
 6. Stop listening, leave the tuner, and open Open Strings Practice. Confirm the browser microphone indicator clears on leaving the tuner, and only one input session is active. Also test permission denial, unplugging the input device, and leaving while permission is pending.
 7. With a stable bowed note, move the pitch gradually using a tuning peg and compare the display's continuity with the reference tuner. Add modest vibrato and deliberate sudden note changes. Watch for display freezes, octave jumps, stale in-tune labels, and excessive spoken screen-reader updates.
 8. Change A4 to 415, 432, 442, and 466 Hz in turn. Return Home and open practice; confirm the target frequencies match the selected reference. Reload and confirm the setting persists. Enter an out-of-range value and confirm a clear validation message appears.
+
+## Android PWA acceptance (not yet performed)
+
+1. On Android Chrome at the production HTTPS domain, open the app while online. Wait for **Available offline**, then use Chrome's **Install app** action. Launch the installed standalone app from its icon.
+2. Turn on airplane mode and force-close/reopen the installed app. Confirm Home, the tuner, the treble-clef staff, and the open-string exercise render. With network off, grant microphone permission after **Start Listening** and verify live pitch processing; stop listening and confirm the microphone indicator clears.
+3. Switch from tuner to practice, rotate the device, lock/unlock the screen, and return from another app. Check that no stale **In tune** or **Listening** state remains after input is lost, and no second microphone session starts.
+4. Install one version, then release an update. Confirm the old version remains usable until **Update now** is chosen, the new version loads afterward, and it launches offline. Repeat after a rollback.

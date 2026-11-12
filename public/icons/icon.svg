@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Violin Studio musical notes">
+  <rect width="512" height="512" rx="92" fill="#a34b29"/>
+  <circle cx="256" cy="256" r="188" fill="#fff9ee"/>
+  <g stroke="#d7b9a6" stroke-width="7" stroke-linecap="round">
+    <path d="M110 183h292M110 222h292M110 261h292M110 300h292M110 339h292"/>
+  </g>
+  <g fill="#a34b29" stroke="#a34b29" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="203" cy="312" rx="34" ry="22" transform="rotate(-22 203 312)"/>
+    <ellipse cx="317" cy="273" rx="34" ry="22" transform="rotate(-22 317 273)"/>
+    <path d="M233 301V151M347 262V151" fill="none" stroke-width="14"/>
+    <path d="M233 151Q285 177 347 151v35q-58 24-114 0z"/>
+  </g>
+</svg>
