@@ -32,7 +32,7 @@ export class ExerciseEngine {
     }
     if (!hz) {
       if (reading.reason === 'quiet' || this.lastMatch === null || now - this.lastMatch > this.settings.maxGapMs) this.clearMatch();
-      return this.result(reading.reason === 'ok' ? 'uncertain' : reading.reason, this.matchStart === null ? 0 : now - this.matchStart, null, false);
+      return this.result(reading.reason === 'quiet' ? 'quiet' : reading.reason === 'outlier' ? 'outlier' : 'uncertain', this.matchStart === null ? 0 : now - this.matchStart, null, false);
     }
     if (!matchesTarget(hz, this.notes[this.index].frequency, this.settings.toleranceCents)) {
       this.clearMatch();

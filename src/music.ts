@@ -7,9 +7,11 @@ export const OPEN_STRINGS: PracticeNote[] = [
 ];
 export const OPEN_STRINGS_EXERCISE = { id: 'open-strings', title: 'Open Strings Practice', notes: OPEN_STRINGS };
 const NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
-export function frequencyToNote(hz: number): string | null {
+export function frequencyToNote(hz: number, a4 = 440): string | null {
   if (!Number.isFinite(hz) || hz <= 0) return null;
-  const midi = Math.round(69 + 12 * Math.log2(hz / 440));
+  // Array.map passes an index as the second argument; only supported A4 references apply.
+  const reference = Number.isFinite(a4) && a4 >= 415 && a4 <= 466 ? a4 : 440;
+  const midi = Math.round(69 + 12 * Math.log2(hz / reference));
   return `${NAMES[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
 }
 export function centsFromTarget(hz: number, targetHz: number): number {

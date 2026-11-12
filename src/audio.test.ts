@@ -64,4 +64,31 @@ describe('audio session lifecycle', () => {
       expect(close).toHaveBeenCalledOnce();
     } finally { vi.useRealTimers(); }
   });
+  it('shares one resume attempt across overlapping suspended ticks', async () => {
+    vi.useFakeTimers();
+    try {
+      const track = { stop: vi.fn(), onended: null };
+      let tick: () => void = () => {};
+      let context: FakeContext;
+      class FakeContext {
+        state: AudioContextState = 'running'; sampleRate = 48000;
+        resume = vi.fn().mockImplementationOnce(async () => {}).mockImplementation(() => new Promise<void>(() => {}));
+        close = vi.fn().mockResolvedValue(undefined);
+        createMediaStreamSource = () => ({ connect: vi.fn(), disconnect: vi.fn() });
+        createAnalyser = () => ({ fftSize: 0, smoothingTimeConstant: 0, getFloatTimeDomainData: vi.fn(), disconnect: vi.fn() });
+        constructor() { context = this; }
+      }
+      vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [track], getAudioTracks: () => [track] }) } });
+      vi.stubGlobal('window', { AudioContext: FakeContext, setInterval: (callback: () => void) => { tick = callback; return 1; }, clearInterval: vi.fn(), setTimeout, clearTimeout });
+      vi.stubGlobal('AudioContext', FakeContext);
+      const session = new AudioSession(vi.fn(), vi.fn());
+      await session.start();
+      context!.state = 'suspended';
+      tick(); tick();
+      expect(context!.resume).toHaveBeenCalledTimes(2); // startup plus one retry
+      session.stop();
+      await vi.advanceTimersByTimeAsync(1600);
+      expect(track.stop).toHaveBeenCalledOnce();
+    } finally { vi.useRealTimers(); }
+  });
 });

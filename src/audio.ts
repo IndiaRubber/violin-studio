@@ -1,5 +1,5 @@
 import { PRACTICE } from './config';
-import { PitchPipeline, type PitchReading } from './pitch';
+import { PitchPipeline, type PitchReading, type PitchSettings } from './pitch';
 
 export interface AudioDiagnostics { requested: MediaTrackConstraints; applied: MediaTrackSettings | null; sampleRate: number | null; contextState: AudioContextState | 'unavailable'; }
 const REQUESTED: MediaTrackConstraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
@@ -11,17 +11,24 @@ export class AudioSession {
   private analyser: AnalyserNode | null = null;
   private timer: number | null = null;
   private stopped = false;
-  constructor(private onReading: (reading: PitchReading, time: number) => void, private onLost: (message?: string) => void, private onDiagnostics: (details: AudioDiagnostics) => void = () => {}) {}
+  private resumeAttempt: Promise<void> | null = null;
+  constructor(private onReading: (reading: PitchReading, time: number) => void, private onLost: (message?: string) => void, private onDiagnostics: (details: AudioDiagnostics) => void = () => {}, private pitchSettings?: PitchSettings) {}
   private report() {
     const track = this.stream?.getAudioTracks()[0];
     this.onDiagnostics({ requested: REQUESTED, applied: track?.getSettings?.() ?? null, sampleRate: this.context?.sampleRate ?? null, contextState: this.context?.state ?? 'unavailable' });
   }
   private async ensureRunning() {
     if (!this.context) return;
+    if (this.resumeAttempt) return this.resumeAttempt;
+    const context = this.context;
+    this.resumeAttempt = this.resumeContext(context);
+    try { await this.resumeAttempt; } finally { this.resumeAttempt = null; }
+  }
+  private async resumeContext(context: AudioContext) {
     let timeout: number | undefined;
     try {
-      await Promise.race([this.context.resume(), new Promise<never>((_, reject) => { timeout = window.setTimeout(() => reject(new Error('Audio could not start. Check browser audio permissions and try again.')), PRACTICE.contextResumeTimeoutMs); })]);
-      if (this.context.state !== 'running') throw new Error('Audio is suspended. Check browser audio permissions and try again.');
+      await Promise.race([context.resume(), new Promise<never>((_, reject) => { timeout = window.setTimeout(() => reject(new Error('Audio could not start. Check browser audio permissions and try again.')), PRACTICE.contextResumeTimeoutMs); })]);
+      if (!this.stopped && context.state !== 'running') throw new Error('Audio is suspended. Check browser audio permissions and try again.');
     } finally { if (timeout !== undefined) window.clearTimeout(timeout); this.report(); }
   }
   async start() {
@@ -38,7 +45,7 @@ export class AudioSession {
       this.analyser.smoothingTimeConstant = 0;
       this.source.connect(this.analyser);
       const samples = new Float32Array(PRACTICE.analysisSize);
-      const pipeline = new PitchPipeline();
+      const pipeline = new PitchPipeline(PRACTICE.analysisSize, this.pitchSettings);
       this.stream.getAudioTracks().forEach(track => { track.onended = () => { if (!this.stopped) { this.stop(); this.onLost(); } }; });
       this.timer = window.setInterval(() => {
         if (!this.analyser || !this.context || this.context.state === 'closed') return;

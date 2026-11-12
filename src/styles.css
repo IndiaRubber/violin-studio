@@ -82,3 +82,29 @@ main{width:calc(100% - 26px)}
 .note-hints{position:relative;height:var(--hint-height);margin:-12px 0 14px;display:block;text-align:left}
 .note-hints span{position:absolute;transform:translateX(-50%);white-space:nowrap;min-width:0}
 .staff-wrap{width:100%}
+.tuner-screen{padding:30px 0 65px;max-width:850px;margin:auto}
+.tuner-screen h1{margin-top:4px}
+.tuner-controls{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:26px 0 20px}
+.tuner-controls fieldset,.string-picker{border:0;padding:0;margin:0}
+.tuner-controls legend,.string-picker legend,.reference-control{font-size:14px;font-weight:700;color:#53656e;margin-bottom:9px}
+.segmented{display:flex;gap:6px;background:#e9e9e2;padding:5px;border-radius:11px}
+.segmented button,.string-picker button{border:1px solid transparent;background:transparent;color:#324650;border-radius:8px;padding:10px 20px;min-height:45px;font-weight:700}
+.segmented button[aria-pressed=true],.string-picker button[aria-pressed=true]{background:#a34b29;color:#fff}
+.reference-control input{width:78px;border:1px solid #bdc7c4;border-radius:8px;background:#fff;padding:8px;text-align:center;margin-left:8px;color:#20313b}
+.string-picker>div{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.string-picker button{border-color:#d5dcd9;background:#fffdfa;font-size:20px}
+.string-picker button small{display:block;font-size:11px;font-weight:500;margin-top:3px}
+.tuner-display{background:#fffdfa;border:1px solid #e2e2da;border-radius:18px;margin:22px 0;padding:28px clamp(22px,6vw,65px);text-align:center}
+.tuner-display .eyebrow{margin:0;color:#75838b}
+.tuner-note{display:block;font-family:Georgia,serif;font-size:clamp(75px,14vw,135px);line-height:1.2;margin:8px 0 0}
+.tuner-frequency{font-size:20px;color:#586a73;font-variant-numeric:tabular-nums}
+.tuner-status{font-size:22px;font-weight:700;min-height:32px;margin:28px 0 6px}
+.tuner-status.is-tuned{color:#28775d}
+.tuner-cents{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;margin-bottom:20px}
+.tuner-meter{height:22px;border-radius:12px;position:relative;background:linear-gradient(90deg,#d9e3ed,#e2ece6 38%,#abd3bf 50%,#e2ece6 62%,#ead8cd)}
+.tuner-zone{position:absolute;left:40%;width:20%;height:100%;background:#8fc4a5;border-radius:8px}
+.tuner-center{position:absolute;left:50%;height:30px;top:-4px;border-left:2px solid #28775d}
+.tuner-needle{position:absolute;top:-8px;width:6px;height:38px;background:#20313b;border-radius:4px;transform:translateX(-50%)}
+.tuner-labels{display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:#647780;margin-top:11px}
+.tuner-screen>.diagnostics{margin-top:24px}
+@media(max-width:650px){.tuner-controls{display:block}.reference-control{display:block;margin-top:18px}.string-picker>div{grid-template-columns:repeat(2,1fr)}.tuner-display{padding:24px 20px}.tuner-status{font-size:18px}.tuner-frequency{font-size:17px}}
