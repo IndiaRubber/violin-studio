@@ -1,0 +1,16 @@
+export const PRACTICE = {
+  toleranceCents: 25,
+  stableMs: 350,
+  minRms: 0.012,
+  minClarity: 0.86,
+  minFrequency: 160,
+  maxFrequency: 800,
+  analysisSize: 4096,
+  pollMs: 50,
+  maxGapMs: 110,
+  releaseMs: 180,
+  transitionMs: 50,
+  contextResumeTimeoutMs: 1500,
+  maxRejectedFrames: 2,
+  maxRawSmoothCents: 25,
+} as const;

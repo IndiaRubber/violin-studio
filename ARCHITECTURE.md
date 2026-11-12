@@ -1,0 +1,9 @@
+# Architecture
+
+The React shell in `src/App.tsx` owns the three screens and the microphone session. `src/Staff.tsx` renders exercise note data as SVG using VexFlow; it uses an actual treble clef and VexFlow's ledger lines.
+
+`src/audio.ts` owns `getUserMedia`, Web Audio nodes, polling, and cleanup. It never connects the microphone to speakers. `src/pitch.ts` wraps Pitchy's McLeod pitch estimate, rejects low RMS/clarity/out of range readings, and median smooths accepted frequencies. `src/music.ts` converts frequencies to named octaves and signed cents from the actual target. `src/exercise.ts` tracks sustained matches, ordered progression, and release between targets. `src/config.ts` centralizes thresholds. This separation allows swapping pitch detection, capture, notation, or exercises independently.
+
+Pitchy's `forFloat32Array(4096)` and `findPitch(samples, sampleRate)` API was verified against its published documentation. The application pins dependencies and a lockfile. The detector's clarity is a signal quality heuristic, not a calibrated probability. Audio and UI are entirely client side.
+
+The analysis window is 4096 samples (about 85–93 ms at common sample rates), polled every 50 ms. Analyser frames overlap. One isolated pitch jump is quarantined; two consistent observations establish a transition. Rejected frames produce no accepted pitch, and smoothing history expires after more than two consecutive rejected frames. The engine permits up to 110 ms between verified matching observations, but silence or a verified wrong pitch resets a hold. Advancing requires a fresh correct observation after 350 ms. A 180 ms continuous quiet period, or a confirmed pitch change, releases the next target. These settings are starting points for physical testing, not universal violin thresholds.
