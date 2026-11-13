@@ -110,3 +110,86 @@ main{width:calc(100% - 26px)}
 .tuner-labels{display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:#647780;margin-top:11px}
 .tuner-screen>.diagnostics{margin-top:24px}
 @media(max-width:650px){.tuner-controls{display:block}.reference-control{display:block;margin-top:18px}.string-picker>div{grid-template-columns:repeat(2,1fr)}.tuner-display{padding:24px 20px}.tuner-status{font-size:18px}.tuner-frequency{font-size:17px}}
+
+/* Milestone 2A: sustained notes, reference tone, practice options */
+.mode-tag{font-size:13px;font-weight:700;color:#a34b29;font-variant-numeric:tabular-nums}
+.staff{min-height:190px}
+.target-card{position:relative}
+.tone-button{margin-top:10px;border:1px solid #a34b29;background:#fffdfa;color:#a34b29;border-radius:9px;padding:8px 12px;min-height:44px;font-weight:700;font-size:14px}
+.tone-button.is-playing{background:#a34b29;color:#fff}
+.tone-status{margin:12px 0 0;padding:9px 12px;border-radius:9px;background:#f4e8db;color:#7a3a1f;font-size:14px;font-weight:600}
+.hold-card{margin-top:14px;padding:14px 20px;background:#fffdfa;border:1px solid #e2e2da;border-radius:16px}
+.hold-card.is-holding{border-color:#9cc9b2}
+.beats{display:flex;gap:10px}
+.beat{flex:1;height:34px;border-radius:9px;display:grid;place-items:center;font-weight:700;color:#8a969b;background:#eef0ec;font-variant-numeric:tabular-nums}
+.beat.done{background:#28775d;color:#fff}
+.beat.now{background:#abd3bf;color:#174c3a;animation:beat-pulse .35s ease-out}
+@keyframes beat-pulse{from{transform:scale(1.08)}to{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.beat.now{animation:none}}
+.hold-track{height:6px;background:#e3e6e1;border-radius:8px;margin:10px 0 8px;overflow:hidden}
+.hold-track div{height:100%;background:#28775d;border-radius:8px;transition:width .1s linear}
+.hold-card small{color:#677780;font-size:13px}
+.actions{flex-wrap:wrap}
+.practice-options{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:end;margin-top:22px;padding:16px 20px;background:#fffdfa;border:1px solid #e2e2da;border-radius:16px}
+.practice-options fieldset{border:0;padding:0;margin:0;min-width:0}
+.practice-options fieldset:disabled{opacity:.5}
+.practice-options legend{font-size:13px;font-weight:700;color:#53656e;margin-bottom:8px}
+.practice-options .hint{font-weight:500;color:#7a8589}
+.practice-options .segmented button{padding:8px 14px;min-height:44px}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:44px;height:44px;border-radius:9px;border:1px solid #bfc9c8;background:#fff;font-size:22px;font-weight:700;color:#20313b}
+.stepper button:disabled{opacity:.4;cursor:default}
+.stepper output{min-width:76px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{min-width:48px;min-height:44px;border-radius:9px;border:1px solid #d5dcd9;background:#fffdfa;color:#324650;font-weight:700;padding:0 10px}
+.chips button[aria-pressed=true]{background:#a34b29;border-color:#a34b29;color:#fff}
+.hint-toggle{display:flex;align-items:center;gap:8px;font-size:14px;min-height:44px;cursor:pointer}
+.hint-toggle input{accent-color:#a34b29;width:20px;height:20px}
+.help{margin-top:16px;padding:12px 20px;background:#fffdfa;border:1px solid #e2e2da;border-radius:16px;color:#43555e}
+.help summary{cursor:pointer;font-size:14px;font-weight:700;min-height:28px}
+.help dl{margin:10px 0 4px;font-size:14px;line-height:1.45}
+.help dt{font-weight:700;margin-top:8px}
+.help dd{margin:2px 0 0}
+@media(max-width:700px){
+  .practice{padding-top:14px}
+  .practice h1{font-size:28px;margin:6px 0 10px}
+  .progress-track{margin-bottom:12px}
+  .score-card{padding:10px 4px 0}
+  .feedback-grid{gap:10px;margin-top:10px}
+  .feedback-card{padding:12px;min-height:0}
+  .feedback-card .eyebrow{margin-bottom:4px}
+  .feedback-card strong{font-size:26px}
+  .meter-card strong{font-size:20px}
+  .tone-button{width:100%}
+  .hold-card{padding:10px 12px;margin-top:10px}
+  .beat{height:30px}
+  .status{margin:12px 0 10px;font-size:15px;min-height:42px}
+  .actions .primary{flex:1 1 100%}
+  .actions .secondary{flex:1;padding:10px 8px}
+  .practice-options{padding:14px}
+}
+.staff-wrap{overflow:hidden}
+.staff{min-height:150px}
+.target-card{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.tone-button{margin-top:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;min-width:64px;flex-shrink:0}
+.tone-button span{font-size:20px;line-height:1}
+.meter-card .eyebrow strong{display:inline;font-size:18px;letter-spacing:0;text-transform:none;color:#20313b;margin-left:8px}
+.feedback-card.meter-card{min-height:0}
+@media(max-width:700px){
+  .tone-button{width:auto;padding:6px 8px}
+  .score-heading{font-size:13px}
+  .actions{gap:8px}
+  .actions .primary,.actions .secondary{min-height:46px}
+}
+.hold-card small{display:flex;justify-content:space-between;gap:10px}
+.target-card small{white-space:nowrap}
+@media(max-width:700px){
+  .beat{height:26px}
+  .hold-track{margin:8px 0 6px}
+  .actions{flex-wrap:nowrap}
+  .actions .primary{flex:1.6 1 auto;padding:12px 10px}
+  .actions .secondary{flex:1 1 auto;padding:10px 6px}
+  .wide-only{display:none}
+  .target-card strong{font-size:24px}
+  .status{min-height:40px}
+}

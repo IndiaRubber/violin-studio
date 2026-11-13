@@ -27,6 +27,13 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await page.getByRole('button', { name: /Open Strings Practice/ }).click();
   await expect(page.locator('.staff svg')).toBeVisible();
   expect(await page.locator('.staff svg path').count()).toBeGreaterThan(0);
+  // Milestone 2A features work with the network off.
+  await expect(page.locator('.staff svg')).toHaveAttribute('data-note-durations', 'w w w w');
+  await page.getByRole('button', { name: 'Faster' }).click();
+  await expect(page.getByText('4 beats = 3.7 s')).toBeVisible();
+  await page.getByRole('button', { name: /Hear note/ }).click();
+  await expect(page.getByText(/Playing the reference G3/)).toBeVisible();
+  await expect(page.locator('.tone-status')).toHaveCount(0, { timeout: 4000 });
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Hear the note. Find your sound.' })).toBeVisible();
 });

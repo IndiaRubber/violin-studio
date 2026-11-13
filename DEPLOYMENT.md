@@ -19,7 +19,7 @@ Connect the `violin-studio` GitHub repository to a Cloudflare Pages project name
 
 ## Verification and updates
 
-Before each release run `npm test`, `npm run build`, `npm run test:e2e`, and `npm run test:pwa`. After deployment, verify the production `pages.dev` URL and custom domain over HTTPS, direct navigation, manifest, icons, service-worker registration, and an offline restart after the initial cache completes. Confirm microphone permission occurs only after pressing Start Listening. Real violin input and Android installation require manual testing.
+Before each release run `npm test`, `npm run build`, `npm run test:e2e`, and `npm run test:pwa` (prefix the browser suites with `PW_CHANNEL=chrome` where Edge is unavailable). After deployment, verify the production `pages.dev` URL and custom domain over HTTPS, direct navigation, manifest, icons, service-worker registration, and an offline restart after the initial cache completes. Confirm microphone permission occurs only after pressing Start Listening. Real violin input and Android installation require manual testing.
 
 Online clients check for a new service worker on startup, on returning to the tab, and hourly while visible. A new worker waits; the app offers **Update now** so an active practice session is not interrupted. Test an installed client after each release. If a release is bad, use Cloudflare Pages' production deployment rollback, then check both a fresh browser and an existing installed client. [Cloudflare Pages rollbacks](https://developers.cloudflare.com/pages/configuration/rollbacks/).
 

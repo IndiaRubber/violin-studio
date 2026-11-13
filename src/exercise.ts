@@ -49,6 +49,8 @@ export class ExerciseEngine {
     this.changeStart = null;
     return this.result(this.index === this.notes.length ? 'complete' : 'release', stableMs, cents, true);
   }
+  /** Discard in-progress evidence (e.g. while a reference tone plays). Progress is kept. */
+  interrupt() { this.clearMatch(); this.releaseStart = null; this.changeStart = null; }
   private clearMatch() { this.matchStart = null; this.lastMatch = null; }
   private result(state: Evaluation['state'], stableMs: number, cents: number | null, advanced: boolean): Evaluation {
     return { index: this.index, complete: this.index >= this.notes.length, state, stableMs, cents, advanced };

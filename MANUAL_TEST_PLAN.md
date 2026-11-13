@@ -3,7 +3,7 @@
 Use a Windows Chrome or Edge browser at localhost and an acoustic violin. Note the browser, input device, sample rate if known, room, microphone distance, and whether another app applies noise suppression. Open developer diagnostics during each trial. Record observed raw/smoothed frequency, clarity, RMS, and match state. Do not infer physical technique from these readings.
 
 1. Start the exercise. Confirm permission is requested only after **Start Listening**. Deny permission, retry after allowing it, and test with no microphone connected.
-2. Play G3, D4, A4, and E5 in order at normal bow volume. Confirm staff placement (G3 on the space below two ledger lines, D4 below staff, A4 within staff, E5 on top space), target highlight, detected octave, and advancement after a steady in tune note. The current target must advance once only.
+2. Select **Quick check** mode for steps 2–6 (the Milestone 1 behaviour). Play G3, D4, A4, and E5 in order at normal bow volume. Confirm staff placement (G3 on the space below two ledger lines, D4 below staff, A4 within staff, E5 on top space), target highlight, detected octave, and advancement after a steady in tune note. The current target must advance once only.
 3. Sustain each string longer than one second. Confirm no duplicate advancement. Pause briefly between notes, then change strings without a pause; both should permit the next target.
 4. Deliberately play roughly 15–20 cents flat, then sharp, where practical using fingered reference tones or controlled detuning. Confirm the signed cents meter direction and no advancement beyond ±25 cents. Retune afterward.
 5. Test very soft and strong bowing, a noisy bow attack, unstable pitch, and sudden string changes. Watch for false octaves and premature success. A low or uncertain signal should say so and not advance.
@@ -12,6 +12,21 @@ Use a Windows Chrome or Edge browser at localhost and an acoustic violin. Note t
 8. Resize to a narrow viewport. Confirm the notation, labels, meter, controls, and diagnostics remain usable without clipping.
 
 Log each false positive, false negative, and delayed response with target note, detected note, cents, clarity, and RMS. Pitchy and current thresholds have only been tested with synthetic signals; acoustic violin behavior remains unverified until this plan is performed.
+
+## Milestone 2A: sustained whole notes (not yet performed on a violin)
+
+Use Android Chrome at the production URL where possible, and a real violin. Keep developer diagnostics open; record phase/state, hold time, and hold fault time for each failure.
+
+1. Open **Open Strings Practice**. Confirm four whole notes (open noteheads, no stems), one per measure, a 4/4 time signature, ♩ = 60, ledger lines under G3, and a final barline. Sustained mode and 60 BPM are the defaults.
+2. Tap **Hear note** before starting the microphone. Confirm a soft, click-free G3 from the phone speaker, the "Playing the reference" banner, and that the volume is comfortable. Repeat for each string using **Strings**.
+3. Start listening and tap **Hear note** while the violin is silent. Confirm the exercise does not advance or start a hold, and that listening resumes about half a second after the tone ends.
+4. Play G3 out of tune, then bring it into tune. Confirm counting does not start until the pitch is steady and within ±25 cents, then beats 1–4 advance about once per second and the next note is highlighted after four beats.
+5. During a hold, play with a normal beginner wobble, a brief bow change, and slight drift (≈20–30 cents). The count should continue. Stop bowing for about a second, or move clearly off pitch for about half a second; the current note should return to "find the note" without losing earlier notes.
+6. Change tempo to 40, 80, and 120 BPM. Confirm the hold lasts about 6, 3, and 2 seconds. Changing tempo during a hold restarts only that note.
+7. Select a single string (four identical whole notes). Confirm one continuous bow cannot complete more than one note; lifting the bow briefly allows the next.
+8. Use **Restart note**, **Restart exercise**, **Quick check**, and **Show note names**. With names hidden, the target card shows "?" and the reference banner does not name the note.
+9. Lock the screen or switch apps during a hold; on return the hold must not complete from stale input.
+10. Confirm the staff, target, detected pitch, intonation meter, beat counter, and Start/Stop button are visible together on the phone while practising.
 
 ## Instrument Tuner acceptance
 

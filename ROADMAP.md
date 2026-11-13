@@ -1,5 +1,7 @@
 # Roadmap after Milestone 1
 
+Milestone 2A (sustained whole notes, tempo, reference tone, practice controls) is implemented; see README. It does not change the order below: physical validation remains the first gate.
+
 1. **Physical validation and calibration.** Test on a real acoustic violin with several microphones and rooms. Record failure cases with consent, tune thresholds, and add anonymized local regression fixtures. This is the first gate before expanding features.
 2. **Musical practice quality.** Add a non-advancing intonation hold mode, adjustable A4 reference, and more informative flat/sharp coaching. Preserve unlimited repetition.
 3. **Sight reading.** Introduce short local exercises with note duration and rests, then separately offer rhythm practice. Do not merge note and rhythm grading until each works well.

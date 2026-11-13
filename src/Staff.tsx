@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Formatter, Renderer, Stave, StaveNote, Voice } from 'vexflow';
+import { BarlineType, Renderer, Stave, StaveNote, Voice, Formatter } from 'vexflow';
 import type { PracticeNote } from './music';
 
-export function Staff({ notes, currentIndex, showHints }: { notes: PracticeNote[]; currentIndex: number; showHints: boolean }) {
+export const STAFF_HEIGHT = 150;
+const FIRST_MEASURE_EXTRA = 78; // clef + 4/4 time signature
+
+/**
+ * Renders each written note as a whole note filling one 4/4 measure on a treble staff.
+ * Voices are strict, so VexFlow rejects a measure whose durations do not total 4 beats.
+ */
+export function Staff({ notes, currentIndex, showHints, tempo }: { notes: PracticeNote[]; currentIndex: number; showHints: boolean; tempo?: number }) {
   const host = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(700);
   const [positions, setPositions] = useState<number[]>([]);
@@ -18,20 +25,41 @@ export function Staff({ notes, currentIndex, showHints }: { notes: PracticeNote[
     element.replaceChildren();
     const renderWidth = Math.max(320, Math.floor(width));
     const renderer = new Renderer(element, Renderer.Backends.SVG);
-    renderer.resize(renderWidth, 220);
+    renderer.resize(renderWidth, STAFF_HEIGHT);
     const context = renderer.getContext();
-    const stave = new Stave(22, 64, renderWidth - 44).addClef('treble');
-    stave.setContext(context).draw();
-    const staveNotes = notes.map((note, index) => {
-      const staveNote = new StaveNote({ clef: 'treble', keys: [note.vexKey], duration: 'q' });
+    const left = 8;
+    const measureWidth = Math.min(240, (renderWidth - left * 2 - FIRST_MEASURE_EXTRA) / notes.length);
+    let x = left;
+    const centers: number[] = [];
+    const durations: string[] = [];
+    notes.forEach((note, index) => {
+      const first = index === 0;
+      const stave = new Stave(x, 24, measureWidth + (first ? FIRST_MEASURE_EXTRA : 0));
+      if (first) {
+        stave.addClef('treble').addTimeSignature('4/4');
+        if (tempo) stave.setTempo({ duration: 'q', bpm: tempo }, 0);
+      }
+      if (index === notes.length - 1) stave.setEndBarType(BarlineType.END);
+      stave.setContext(context).draw();
+      const staveNote = new StaveNote({ clef: 'treble', keys: [note.vexKey], duration: 'w' });
       const color = index < currentIndex ? '#28775d' : index === currentIndex ? '#a34b29' : '#617080';
       staveNote.setStyle({ fillStyle: color, strokeStyle: color });
-      return staveNote;
+      const voice = new Voice({ numBeats: 4, beatValue: 4 }).addTickables([staveNote]).setStave(stave);
+      const span = stave.getNoteEndX() - stave.getNoteStartX();
+      new Formatter().joinVoices([voice]).format([voice], span);
+      // Centre the whole note in the measure body, as engraved whole-measure notes usually are.
+      const head = staveNote.getGlyphWidth();
+      // Positions are relative to the measure's note area until draw.
+      staveNote.setXShift(Math.max(0, (span - head) / 2 - staveNote.getTickContext().getX()));
+      voice.draw(context, stave);
+      centers.push(staveNote.getNoteHeadBeginX() + head / 2);
+      durations.push(staveNote.getDuration());
+      x += stave.getWidth();
     });
-    const voice = new Voice({ numBeats: notes.length, beatValue: 4 }).addTickables(staveNotes);
-    new Formatter().joinVoices([voice]).format([voice], Math.max(140, renderWidth - 125));
-    voice.draw(context, stave);
-    setPositions(staveNotes.map(note => note.getAbsoluteX()));
-  }, [notes, currentIndex, width]);
-  return <div className="staff-wrap"><div className="staff" ref={host} role="img" aria-label={`Treble clef staff: ${notes.map((n, i) => `${n.name}${i === currentIndex ? ' current' : i < currentIndex ? ' complete' : ''}`).join(', ')}`} /><div className="note-hints">{notes.map((note, index) => <span key={note.id} className={index === currentIndex ? 'active' : ''} style={{ left: positions[index] ?? 0 }}>{showHints ? note.name : index < currentIndex ? '✓' : index === currentIndex ? 'Current' : '·'}</span>)}</div></div>;
+    // Exposed for tests: the durations VexFlow actually rendered.
+    element.querySelector('svg')?.setAttribute('data-note-durations', durations.join(' '));
+    setPositions(centers);
+  }, [notes, currentIndex, width, tempo]);
+  const label = `Treble clef staff in 4/4: ${notes.map((n, i) => `${n.name} whole note${i === currentIndex ? ' current' : i < currentIndex ? ' complete' : ''}`).join(', ')}`;
+  return <div className="staff-wrap"><div className="staff" ref={host} role="img" aria-label={label} /><div className="note-hints">{notes.map((note, index) => <span key={note.id} className={index === currentIndex ? 'active' : ''} style={{ left: positions[index] ?? 0 }}>{showHints ? note.name : index < currentIndex ? '✓' : index === currentIndex ? 'Now' : '·'}</span>)}</div></div>;
 }
