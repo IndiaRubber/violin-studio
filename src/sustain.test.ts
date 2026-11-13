@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { OPEN_STRINGS } from './music';
 import type { PitchReading } from './pitch';
-import { exerciseNotes, PracticeSession } from './practice-session';
+import { findExercise, focusedExercise, practiceNotes } from './curriculum';
+import { PracticeSession } from './practice-session';
 import { SustainEngine, type PracticeEvaluation } from './sustain';
 
+const openStrings = findExercise('open-strings')!;
+const exerciseNotes = (focus: 'all' | 'G3' | 'A4') => practiceNotes(focus === 'all' ? openStrings : focusedExercise(openStrings, focus));
 const STEP = 50; // matches the 50 ms audio poll
 const FIND = 400; // first frame + 350 ms of stability
 const tone = (hz: number): PitchReading => ({ rawHz: hz, smoothHz: hz, clarity: 0.98, rms: 0.1, note: null, reason: 'ok' });
@@ -154,7 +157,7 @@ describe('sustained whole-note practice', () => {
   });
 
   it('requires a release or new pitch between repeated identical notes', () => {
-    const engine = new SustainEngine(exerciseNotes('g3'), 120);
+    const engine = new SustainEngine(exerciseNotes('G3'), 120);
     const clock = new Clock(engine);
     clock.feed(tone(G3), FIND); clock.untilAdvance(tone(G3));
     expect(engine.index).toBe(1);
@@ -193,12 +196,6 @@ describe('sustained whole-note practice', () => {
 });
 
 describe('practice session', () => {
-  it('builds whole-note exercises for all strings or one focused string', () => {
-    expect(exerciseNotes('all').map(n => n.name)).toEqual(['G3', 'D4', 'A4', 'E5']);
-    expect(exerciseNotes('a4').map(n => n.name)).toEqual(['A4', 'A4', 'A4', 'A4']);
-    expect(new Set(exerciseNotes('a4').map(n => n.id)).size).toBe(4);
-  });
-
   it('quick mode keeps the original 350 ms recognition behaviour', () => {
     const session = new PracticeSession(exerciseNotes('all'), 'quick');
     const clock = new Clock(session);

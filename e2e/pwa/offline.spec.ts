@@ -24,7 +24,7 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect(page.locator('.tuner-note')).toHaveText('A4', { timeout: 5000 });
   await page.getByRole('button', { name: 'Home' }).click();
-  await page.getByRole('button', { name: /Open Strings Practice/ }).click();
+  await page.getByRole('button', { name: /Open Strings/ }).click();
   await expect(page.locator('.staff svg')).toBeVisible();
   expect(await page.locator('.staff svg path').count()).toBeGreaterThan(0);
   // Milestone 2A features work with the network off.
@@ -34,6 +34,15 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await page.getByRole('button', { name: /Hear note/ }).click();
   await expect(page.getByText(/Playing the reference G3/)).toBeVisible();
   await expect(page.locator('.tone-status')).toHaveCount(0, { timeout: 4000 });
+  // Milestone 2B: every library exercise is bundled and opens offline.
+  await page.getByRole('button', { name: '← Exercises' }).click();
+  await expect(page.locator('.library .exercise-card')).toHaveCount(10);
+  await page.getByRole('button', { name: /D Major Scale/ }).click();
+  await expect(page.getByRole('img', { name: /key of D major/ })).toBeVisible();
+  await expect(page.locator('.staff svg')).toHaveAttribute('data-note-durations', /^h h/);
+  await page.getByRole('button', { name: '← Exercises' }).click();
+  await page.getByRole('button', { name: /Two-String Tune/ }).click();
+  await expect(page.locator('.staff svg')).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Hear the note. Find your sound.' })).toBeVisible();
 });

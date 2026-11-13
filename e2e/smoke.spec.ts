@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test('opens exercise and renders the open strings on a treble staff', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: /Open Strings Practice/ }).click();
-  await expect(page.getByRole('heading', { name: 'Open Strings Practice' })).toBeVisible();
+  await page.getByRole('button', { name: /Open Strings/ }).click();
+  await expect(page.getByRole('heading', { name: 'Open Strings' })).toBeVisible();
   await expect(page.locator('.staff svg')).toBeVisible();
   await expect(page.getByRole('img', { name: /G3 whole note current, D4 whole note, A4 whole note, E5 whole note/ })).toBeVisible();
   await page.screenshot({ path: 'test-results/exercise.png', fullPage: true });
@@ -18,7 +18,7 @@ test('requests the microphone only after starting and explains denial', async ({
     Object.defineProperty(navigator, 'mediaDevices', { value: { getUserMedia: async () => { throw new DOMException('Denied', 'NotAllowedError'); } } });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: /Open Strings Practice/ }).click();
+  await page.getByRole('button', { name: /Open Strings/ }).click();
   await expect(page.getByRole('alert')).toHaveCount(0);
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect(page.getByRole('alert')).toContainText('Microphone access was denied');
@@ -38,7 +38,7 @@ test('quick check mode advances from G3 using a synthetic microphone stream', as
     } } });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: /Open Strings Practice/ }).click();
+  await page.getByRole('button', { name: /Open Strings/ }).click();
   await page.getByRole('button', { name: 'Quick check' }).click();
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect(page.getByText('Note 2 of 4')).toBeVisible({ timeout: 5000 });
@@ -81,7 +81,7 @@ test('tuner shows synthetic A4 and updates cents when concert pitch changes', as
   await page.getByRole('button', { name: 'Stop Listening' }).click();
   await expect(page.locator('.tuner-note')).toHaveText('—');
   await page.getByRole('button', { name: 'Home' }).click();
-  await page.getByRole('button', { name: /Open Strings Practice/ }).click();
+  await page.getByRole('button', { name: /Open Strings/ }).click();
   await expect(page.getByText('196.89 Hz')).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: /Instrument Tuner/ }).click();
@@ -145,7 +145,7 @@ test('switching from tuner to practice releases the active microphone first', as
   await expect(page.locator('.tuner-note')).toHaveText('A4', { timeout: 5000 });
   await page.getByRole('button', { name: 'Home' }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { captureStops: number }).captureStops)).toBe(1);
-  await page.getByRole('button', { name: /Open Strings Practice/ }).click();
+  await page.getByRole('button', { name: /Open Strings/ }).click();
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { captureCalls: number }).captureCalls)).toBe(2);
   await page.getByRole('button', { name: 'Stop Listening' }).click();

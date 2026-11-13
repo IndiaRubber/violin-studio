@@ -20,6 +20,11 @@ export function beatMs(bpm: number): number {
   return 60_000 / clampTempo(bpm);
 }
 
+/** Duration of a note lasting `beats` quarter-note beats (half note = 2, whole = 4). */
+export function noteMs(beats: number, bpm: number): number {
+  return beats * beatMs(bpm);
+}
+
 /** Whole-note duration: 240 / BPM seconds (four quarter-note beats). */
 export function wholeNoteMs(bpm: number): number {
   return WHOLE_NOTE_BEATS * beatMs(bpm);

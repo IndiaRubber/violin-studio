@@ -23,7 +23,7 @@ const setMic = (page: Page, hz: number, level = 1) => page.evaluate(([f, g]) => 
 
 async function openPractice(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: /Open Strings Practice/ }).click();
+  await page.getByRole('button', { name: /Open Strings/ }).click();
   await expect(page.locator('.staff svg')).toBeVisible();
 }
 
@@ -31,11 +31,11 @@ test('renders four whole notes in 4/4 with ledger lines and a tempo mark', async
   await openPractice(page);
   const svg = page.locator('.staff svg');
   await expect(svg).toHaveAttribute('data-note-durations', 'w w w w');
-  await expect(page.getByRole('img', { name: /Treble clef staff in 4\/4: G3 whole note current, D4 whole note, A4 whole note, E5 whole note/ })).toBeVisible();
+  await expect(page.getByRole('img', { name: /Treble clef staff, no key signature, 4\/4, measures 1 to 4 of 4: G3 whole note current, D4 whole note, A4 whole note, E5 whole note/ })).toBeVisible();
   await expect(svg.locator('text', { hasText: '=' }).or(svg.locator('text', { hasText: '60' })).first()).toBeVisible();
   await expect(page.getByText('4 beats = 4 s')).toBeVisible();
   // Each note sits in its own measure, left to right in written order.
-  const xs = await page.locator('.note-hints span').evaluateAll(spans => spans.map(span => span.getBoundingClientRect().x));
+  const xs = await page.locator('.note-hints:not(.fingering) span').evaluateAll(spans => spans.map(span => span.getBoundingClientRect().x));
   expect(xs).toEqual([...xs].sort((a, b) => a - b));
   await page.screenshot({ path: 'test-results/practice-whole-notes.png', fullPage: true });
 });
@@ -67,7 +67,7 @@ test('prolonged silence during a hold resets only the current note', async ({ pa
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect(page.locator('.hold-card')).toHaveClass(/is-holding/, { timeout: 5000 });
   await setMic(page, 196, 0);
-  await expect(page.getByText(/sound stopped before four beats/)).toBeVisible({ timeout: 3000 });
+  await expect(page.getByText(/sound stopped before the note’s full length/)).toBeVisible({ timeout: 3000 });
   await expect(page.locator('.hold-card')).not.toHaveClass(/is-holding/);
   await expect(page.getByText('Note 1 of 4')).toBeVisible();
   await setMic(page, 196, 1);
@@ -112,7 +112,7 @@ test('practice controls: string focus, tempo, hints, restart, and persistence', 
   await openPractice(page);
   await page.getByRole('button', { name: 'A4', exact: true }).click();
   await expect(page.getByRole('img', { name: /A4 whole note current, A4 whole note, A4 whole note, A4 whole note/ })).toBeVisible();
-  await expect(page.getByText('A4 string focus')).toBeVisible();
+  await expect(page.getByText('Exercise 01 / A4 focus')).toBeVisible();
   await page.getByRole('button', { name: 'Slower' }).click();
   await page.getByRole('button', { name: 'Slower' }).click();
   await expect(page.locator('output[aria-label="Tempo"]')).toHaveText('50 BPM');
@@ -121,7 +121,7 @@ test('practice controls: string focus, tempo, hints, restart, and persistence', 
   await expect(page.locator('output[aria-label="Tempo"]')).toHaveText('40 BPM');
   await expect(page.getByRole('button', { name: 'Slower' })).toBeDisabled();
   await expect(page.getByText('4 beats = 6 s')).toBeVisible();
-  await page.getByLabel('Show note names').uncheck();
+  await page.getByRole('button', { name: 'Hidden', exact: true }).click();
   await expect(page.locator('.target-card strong')).toHaveText('?');
   await expect(page.getByRole('button', { name: 'Restart note' })).toBeVisible();
   await page.getByRole('button', { name: 'Restart exercise' }).click();
@@ -130,11 +130,11 @@ test('practice controls: string focus, tempo, hints, restart, and persistence', 
   await expect(page.locator('.hold-card')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Faster' })).toBeDisabled(); // tempo only applies to sustained notes
   await page.reload();
-  await page.getByRole('button', { name: /Open Strings Practice/ }).click();
+  await page.getByRole('button', { name: /Open Strings/ }).click();
   await expect(page.getByRole('button', { name: 'Quick check' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('output[aria-label="Tempo"]')).toHaveText('40 BPM');
   await expect(page.locator('.target-card strong')).toHaveText('?');
-  await page.getByRole('button', { name: 'Sustain whole notes' }).click();
+  await page.getByRole('button', { name: 'Guided: find & hold' }).click();
   await page.getByRole('button', { name: 'Faster' }).click();
   await expect(page.locator('output[aria-label="Tempo"]')).toHaveText('45 BPM');
 });

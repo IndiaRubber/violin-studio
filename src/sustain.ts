@@ -1,7 +1,7 @@
 import { PRACTICE, SUSTAIN } from './config';
 import { centsFromTarget, matchesTarget, type PracticeNote } from './music';
 import type { PitchReading } from './pitch';
-import { beatPosition, clampTempo, DEFAULT_BPM, wholeNoteMs, WHOLE_NOTE_BEATS } from './tempo';
+import { beatPosition, clampTempo, DEFAULT_BPM, noteMs, WHOLE_NOTE_BEATS } from './tempo';
 
 export interface SustainSettings {
   toleranceCents: number; stableMs: number; maxGapMs: number; releaseMs: number; transitionMs: number;
@@ -26,6 +26,8 @@ export interface PracticeEvaluation {
   /** Phase B: elapsed hold time, required time, and the current 1-based beat (0 outside a hold). */
   holdMs: number;
   requiredMs: number;
+  /** Written length of the current note in quarter-note beats (4 = whole, 2 = half). */
+  beats: number;
   beat: number;
   faultMs: number;
   /** Set on the evaluation where a hold was abandoned. */
@@ -61,7 +63,15 @@ export class SustainEngine {
   }
 
   get tempo() { return this.bpm; }
-  get requiredMs() { return wholeNoteMs(this.bpm); }
+  /** Beats of the current written note; whole notes when unspecified. */
+  get beats() { return this.notes[Math.min(this.index, this.notes.length - 1)]?.beats ?? WHOLE_NOTE_BEATS; }
+  get requiredMs() { return noteMs(this.beats, this.bpm); }
+  /**
+   * Total fault time tolerated in one hold: a fraction of the note, but never less than
+   * one full grace period, so a single brief interruption is always allowed even in
+   * short notes (a half note at 120 BPM lasts only 1 s).
+   */
+  get faultBudgetMs() { return Math.max(this.settings.maxFaultFraction * this.requiredMs, this.settings.holdGraceMs); }
 
   /** Tempo changes restart the current note's count so a note is never timed at two tempos. */
   setTempo(bpm: number) {
@@ -138,8 +148,9 @@ export class SustainEngine {
     this.lastEval = now;
     if (gap > this.settings.holdGraceMs) return this.abandon('lost', reading, cents);
     if (good) this.lastGood = now; else this.faultMs += dt;
-    if (this.faultMs > this.settings.maxFaultFraction * this.requiredMs) return this.abandon('unsteady', reading, cents);
+    if (this.faultMs > this.faultBudgetMs) return this.abandon('unsteady', reading, cents);
     const holdMs = now - this.holdStart;
+    const beats = this.beats;
     if (good && holdMs >= this.requiredMs) {
       this.index++;
       this.phase = 'find';
@@ -147,9 +158,9 @@ export class SustainEngine {
       this.awaitingRelease = this.index < this.notes.length;
       this.releaseStart = null; this.changeStart = null;
       const done = this.index >= this.notes.length;
-      return { ...this.base(done ? 'complete' : 'release', cents, true), holdMs, beat: WHOLE_NOTE_BEATS, faultMs: this.faultMs };
+      return { ...this.base(done ? 'complete' : 'release', cents, true), holdMs, beat: beats, beats, faultMs: this.faultMs };
     }
-    return { ...this.base(good ? 'holding' : 'wavering', cents, false), phase: 'hold', holdMs, beat: beatPosition(holdMs, this.bpm).beat, faultMs: this.faultMs };
+    return { ...this.base(good ? 'holding' : 'wavering', cents, false), phase: 'hold', holdMs, beat: beatPosition(holdMs, this.bpm, beats).beat, faultMs: this.faultMs };
   }
 
   private abandon(reason: Exclude<ResetReason, null>, reading: PitchReading, cents: number | null): PracticeEvaluation {
@@ -164,7 +175,7 @@ export class SustainEngine {
   private base(state: PracticeState, cents: number | null, advanced: boolean): PracticeEvaluation {
     const complete = this.index >= this.notes.length;
     const phase: PracticePhase = complete ? 'complete' : this.awaitingRelease ? 'release' : this.phase;
-    return { index: this.index, complete, phase, state, stableMs: 0, cents, advanced, holdMs: 0, requiredMs: this.requiredMs, beat: 0, faultMs: 0, reset: null };
+    return { index: this.index, complete, phase, state, stableMs: 0, cents, advanced, holdMs: 0, requiredMs: this.requiredMs, beats: this.beats, beat: 0, faultMs: 0, reset: null };
   }
 
   private result(state: PracticeState, cents: number | null, advanced: boolean, now?: number): PracticeEvaluation {

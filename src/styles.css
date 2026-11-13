@@ -193,3 +193,30 @@ main{width:calc(100% - 26px)}
   .target-card strong{font-size:24px}
   .status{min-height:40px}
 }
+
+/* Milestone 2B: exercise library, key signatures, fingering hints, completion summary */
+.library-heading{margin:44px 0 0;font-size:22px}
+.library{display:grid;gap:12px;margin-top:14px;width:min(620px,100%)}
+.library .exercise-card{margin-top:0;padding:16px 20px;width:100%}
+.library .exercise-card strong{font-size:19px}
+.card-number{min-width:52px;height:52px;border-radius:12px;background:#f4e8db;color:#a34b29;display:grid;place-items:center;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
+.card-meta{color:#8a5a3f!important;font-size:13px!important}
+.objective{margin:-4px 0 12px;color:#596a74;font-size:15px;line-height:1.4}
+.staff-page{margin:0 0 -4px;font-size:12px;font-weight:700;color:#7a8589;text-align:right;padding-right:6px}
+.note-hints .done{color:#28775d}
+.note-hints.fingering{margin-top:-10px;color:#8a5a3f}
+.note-hints.fingering span{font-size:12px;font-weight:600}
+.fingering-hint{color:#8a5a3f!important;margin-top:4px}
+.practice-options .segmented{flex-wrap:wrap}
+.summary{display:grid;grid-template-columns:max-content 1fr;gap:10px 18px;margin:26px 0 0;font-size:16px;max-width:620px}
+.summary dt{font-weight:700;color:#53656e}
+.summary dd{margin:0;color:#20313b}
+.completion .summary-note{font-size:14px!important;margin-top:18px}
+@media(max-width:700px){
+  .library .exercise-card{padding:12px 14px;gap:12px}
+  .card-number{min-width:44px;height:44px;font-size:15px}
+  .library .exercise-card small{font-size:13px;margin-top:4px}
+  .summary{grid-template-columns:1fr;gap:2px}
+  .summary dd{margin-bottom:10px}
+  .objective{font-size:14px}
+}

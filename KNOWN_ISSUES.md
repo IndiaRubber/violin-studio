@@ -9,4 +9,10 @@
 - A browser tab in the background throttles the audio poll to about once a second, so any hold in progress resets. This is deliberate.
 - The browser suites run with Edge by default; this milestone was verified with Google Chrome for Testing 153 on Linux (`PW_CHANNEL=chrome`), not Edge.
 
+- Milestone 2B: the 450 ms minimum fault budget for short notes and the half-note durations at 80 BPM have only been exercised with synthetic tones. Real bow changes and string crossings may need different values.
+- Only 4/4 time and whole and half notes are supported; only C, G, and D major key signatures are defined. Adding a key or duration requires extending `src/notation.ts` and the validator.
+- Suggested fingerings are first-position only. The app hears pitch, not which string or finger was used.
+- Measure paging uses estimated minimum widths; very unusual measures (many accidentals) could be tighter than ideal.
+- Exercise 08 melodies are original and intentionally simple; they have not been reviewed by a violin teacher.
+
 Acoustic violin input and native Android installation have not yet been tested. These are manual acceptance tasks, not completed validations.

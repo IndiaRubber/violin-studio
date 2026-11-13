@@ -25,7 +25,8 @@ export const PRACTICE = {
  *   length is tolerated and the beat count continues. A longer stretch resets the
  *   current note to Phase A. Earlier notes are never lost.
  * - maxFaultFraction: total tolerated fault time may not exceed this fraction of
- *   the whole note; beyond it the current note resets (mostly off-pitch holds fail).
+ *   the note (but is never less than holdGraceMs, so short half notes still allow one
+ *   brief bow change); beyond it the current note resets (mostly off-pitch holds fail).
  * - Completion requires the full duration AND a fresh verified matching reading,
  *   so a dropout or stale estimate at the end cannot complete a note.
  */

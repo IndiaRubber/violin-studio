@@ -28,6 +28,19 @@ Use Android Chrome at the production URL where possible, and a real violin. Keep
 9. Lock the screen or switch apps during a hold; on return the hold must not complete from stale input.
 10. Confirm the staff, target, detected pitch, intonation meter, beat counter, and Start/Stop button are visible together on the phone while practising.
 
+## Milestone 2B: exercise library and scales (not yet performed on a violin)
+
+1. Open the home screen. Confirm ten exercises (01–08C), each with key, note values, tempo, and difficulty. Confirm the tuner is still available.
+2. Open **06 D Major Scale**. Confirm two sharps (F♯, C♯) after the clef, 4/4 on the first page, ♩ = 80, half notes two per measure, and a final whole-note D4. On a phone, confirm a window such as "Measures 1–2 of 8" and that the page turns (without scrolling) when the current note reaches the next window.
+3. Play the scale up and down on a violin in Guided mode. Each note should start counting only once steady, hold for two beats (about 1.5 s at 80 BPM), then advance. Note any note that resets despite reasonable playing; record diagnostics (hold fault time).
+4. Open **07 G Major Scale**. Confirm one sharp (F♯), ledger lines below G3, A3, B3, and C4, and that the low notes on the G string are detected without octave errors.
+5. Open **04 D-String Walk** and **05 A-String Walk**. Confirm the ♯ sign printed before F♯4 and C♯5, and suggested fingering D0, D1, D↑2, D3 (A0, A1, A↑2, A3). Toggle the fingering hints off and on.
+6. Open **03 First Finger**. Confirm that repeated E4–E4 (and B4–B4) needs a brief bow lift between them.
+7. Set note names to **After playing** and then **Hidden**; confirm the target shows "?" and names appear only on completed notes (After playing).
+8. Play one of the 08 melodies and finish it. Confirm the completion summary lists notes practised, tempo, and how many notes needed another try, and offers Practice again, Next exercise, and Back.
+9. Change the A4 reference in the tuner (e.g. 442) and confirm scale targets and reference tones move accordingly.
+10. Turn on airplane mode after the app has loaded once; confirm every exercise opens.
+
 ## Instrument Tuner acceptance
 
 Use a conventional chromatic tuner as a reference. Tune the same real violin with both devices in the same room. Record microphone distance and device, A4 setting, detected frequency, note and octave, signed cents, clarity, and RMS. Allow for small differences from equal temperament when comparing pure violin fifths.
