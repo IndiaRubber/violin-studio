@@ -52,7 +52,9 @@ Use a conventional chromatic tuner as a reference. Tune the same real violin wit
 5. Test silence, soft playing, bow attacks, vibrato, room noise, and strong upper harmonics. Confirm uncertain readings and isolated octave errors do not remain on screen as a confident pitch.
 6. Stop listening, leave the tuner, and open Open Strings Practice. Confirm the browser microphone indicator clears on leaving the tuner, and only one input session is active. Also test permission denial, unplugging the input device, and leaving while permission is pending.
 7. With a stable bowed note, move the pitch gradually using a tuning peg and compare the display's continuity with the reference tuner. Add modest vibrato and deliberate sudden note changes. Watch for display freezes, octave jumps, stale in-tune labels, and excessive spoken screen-reader updates.
-8. Change A4 to 415, 432, 442, and 466 Hz in turn. Return Home and open practice; confirm the target frequencies match the selected reference. Reload and confirm the setting persists. Enter an out-of-range value and confirm a clear validation message appears.
+8. Milestone 2C trail: with a bowed open string, start sharp and turn the peg down to pitch. Confirm the trail starts right of the centre line, moves toward it, the label changes from Tune down to In tune inside the green band, and after you stop bowing the live marker becomes an empty ring while the trail fades within about three seconds. Repeat from flat (Tune up).
+9. In Manual, select D and bow the A string: confirm “Target D · Hearing A4” and no new trail. Turn on Auto and bow each string: confirm the matching peg lights up. In Chromatic, confirm no peg is highlighted. Try the G, D, A, E buttons by touch and with a keyboard, and with the system “reduce motion” setting on.
+10. Change A4 to 415, 432, 442, and 466 Hz in turn. Return Home and open practice; confirm the target frequencies match the selected reference. Reload and confirm the setting persists. Enter an out-of-range value and confirm a clear validation message appears.
 
 ## Android PWA acceptance (not yet performed)
 

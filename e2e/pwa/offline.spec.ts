@@ -70,6 +70,6 @@ test('production PWA fits a narrow Android viewport', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('Available offline')).toBeVisible({ timeout: 15000 });
   await page.getByRole('button', { name: /Instrument Tuner/ }).click();
-  await expect(page.locator('.tuner-meter')).toBeVisible();
+  await expect(page.locator('.tuner-graph')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

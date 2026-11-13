@@ -220,3 +220,67 @@ main{width:calc(100% - 26px)}
   .summary dd{margin-bottom:10px}
   .objective{font-size:14px}
 }
+
+/* Milestone 2C: tuner redesign — dark surface, pitch trail, violin scroll */
+.tuner-v2{padding-top:18px;max-width:560px}
+.tuner-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tuner-top h1{font-size:24px;margin:0}
+.tuner-surface{margin-top:12px;padding:14px 14px 16px;border-radius:22px;color:#ece6dc;background-color:#191d22;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:22px 22px;box-shadow:0 10px 30px rgba(20,25,30,.18);scroll-margin-top:8px}
+.tuner-bar{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.segmented.dark{background:#2a3037}
+.segmented.dark button{color:#c9c2b7;min-height:44px;padding:8px 16px}
+.segmented.dark button[aria-pressed=true]{background:#e9e2d6;color:#1b1f24}
+.auto-switch{display:flex;align-items:center;gap:10px;background:none;border:0;color:#ece6dc;font-weight:700;letter-spacing:.06em;font-size:14px;min-height:44px;padding:0 4px;cursor:pointer}
+.switch-track{width:50px;height:28px;border-radius:20px;background:#4a525b;position:relative;transition:background .2s}
+.switch-track span{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s}
+.auto-switch[aria-checked=true] .switch-track{background:#2fb47c}
+.auto-switch[aria-checked=true] .switch-track span{transform:translateX(22px)}
+.auto-switch:focus-visible,.peg-button:focus-visible,.segmented.dark button:focus-visible,.tuner-start:focus-visible{outline:3px solid #f0b072;outline-offset:2px}
+.tuner-readout{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:10px}
+.tuner-v2 .tuner-note{font-family:Georgia,serif;font-size:52px;line-height:1;margin:0;display:block;color:#fff}
+.tuner-v2 .tuner-frequency{font-size:14px;color:#a9a39a;font-variant-numeric:tabular-nums}
+.tuner-readout-right{text-align:right;display:flex;flex-direction:column;gap:4px}
+.tuner-v2 .tuner-cents{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin:0;color:#fff}
+.tuner-target{font-size:13px;color:#a9a39a}
+.tuner-v2 .tuner-status{display:inline-block;margin:10px 0 8px;padding:6px 14px;border-radius:999px;font-size:17px;font-weight:700;min-height:0;background:#2a3037;color:#d7d0c5}
+.tuner-v2 .tuner-status.is-tuned{background:#1f4a37;color:#7fe2b0}
+.tuner-v2 .tuner-status.is-adjust{background:#4a3a1f;color:#f3cf7a}
+.tuner-v2 .tuner-status.is-mismatch{background:#4a2a24;color:#f5b39b}
+.tuner-graph{position:relative;height:190px;margin:0 2px;border-radius:12px;overflow:hidden}
+.tuner-graph canvas{position:absolute;inset:0;width:100%;height:100%}
+.graph-center{position:absolute;left:50%;top:0;bottom:0;border-left:2px solid rgba(255,255,255,.35)}
+.graph-band{position:absolute;top:0;bottom:0;background:linear-gradient(rgba(95,211,154,.16),rgba(95,211,154,.02))}
+.graph-label{position:absolute;top:6px;font-size:22px;color:#8f8a82;font-family:Georgia,serif}
+.graph-label small{font-family:system-ui,sans-serif;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.graph-label.flat{left:8px}.graph-label.sharp{right:8px}
+.trail-marker{position:absolute;top:2px;width:44px;height:30px;margin-left:-22px;border-radius:16px;border:2px dashed rgba(255,255,255,.35);display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;transition:left .08s linear;font-variant-numeric:tabular-nums}
+.trail-marker.is-live{border:2px solid #f08a5d;background:#22272d}
+.trail-marker.is-live.is-tuned{border-color:#5fd39a;color:#bff3d8}
+.violin-scroll{position:relative;width:min(100%,340px);margin:6px auto 0;aspect-ratio:320/214}
+.violin-scroll svg{display:block;width:100%;height:100%}
+.violin-scroll.is-chromatic svg{opacity:.45}
+.peg-head{fill:url(#vs-ebony);stroke:#0b0806;stroke-width:1}
+.peg-collar{fill:#c9a678}
+.peg-shine{fill:rgba(255,255,255,.18)}
+.peg-shaft{fill:#1a110c}
+.peg.is-active .peg-head{fill:#5a3a22;stroke:#f0b072;stroke-width:2.5}
+.vs-string{stroke:#cfcac0;stroke-width:1.2;opacity:.8}
+.vs-string.is-active{stroke:#ffd29a;stroke-width:2;opacity:1}
+.peg-button{position:absolute;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;border:0;background:#2a3037;color:#ece6dc;font-size:22px;font-weight:700;cursor:pointer}
+.peg-button.left{left:0}.peg-button.right{right:0}
+.peg-button[aria-pressed=true]{background:#f3ece1;color:#1b1f24;box-shadow:0 0 0 3px rgba(240,176,114,.55)}
+.chromatic-note p{margin:8px 4px 0;font-size:13px;color:#a9a39a;text-align:center}
+.tuner-start{display:block;width:100%;margin-top:12px}
+.tuner-v2 .tuner-controls{margin:18px 0 8px}
+.tuner-help p{font-size:14px;line-height:1.5}
+@media(prefers-reduced-motion:reduce){.trail-marker,.switch-track,.switch-track span{transition:none}}
+@media(max-width:650px){
+  .tuner-v2{padding-top:10px}
+  .tuner-top h1{font-size:20px}
+  .tuner-surface{padding:12px 10px 12px;margin-left:-6px;margin-right:-6px}
+  .tuner-v2 .tuner-note{font-size:42px}
+  .tuner-graph{height:170px}
+  .violin-scroll{width:100%;margin-top:2px}
+  .peg-button{width:48px;height:48px;font-size:20px}
+}

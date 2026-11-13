@@ -15,4 +15,8 @@
 - Measure paging uses estimated minimum widths; very unusual measures (many accidentals) could be tighter than ideal.
 - Exercise 08 melodies are original and intentionally simple; they have not been reviewed by a violin teacher.
 
+- Milestone 2C: the pitch trail and Auto string selection were exercised only with synthetic oscillator input. Real bowing, vibrato, and string noise may make the trail busier; the 250 ms liveness and 200 ms gap rules may need tuning on Android hardware.
+- Auto mode follows the nearest open string within 300 cents, so a badly detuned string (more than about a minor third away) can be identified as its neighbour; use Manual for very out-of-tune strings.
+- The trail is drawn on a canvas; screen readers get the text readouts and a summary label, not the history.
+
 Acoustic violin input and native Android installation have not yet been tested. These are manual acceptance tasks, not completed validations.

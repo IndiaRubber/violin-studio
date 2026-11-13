@@ -65,10 +65,10 @@ test('tuner shows synthetic A4 and updates cents when concert pitch changes', as
   await page.screenshot({ path: 'test-results/tuner.png', fullPage: true });
   await page.getByRole('button', { name: /G3.*196/ }).click();
   await page.evaluate(() => { (window as unknown as { tunerOscillator: OscillatorNode }).tunerOscillator.frequency.value = 196 * 2 ** (-51 / 1200); });
-  await expect(page.locator('.tuner-status')).toContainText('Very flat', { timeout: 5000 });
+  await expect(page.locator('.tuner-status')).toHaveText('Tune up', { timeout: 5000 });
   await expect(page.locator('.tuner-note')).toHaveText('F♯3');
   await page.evaluate(() => { (window as unknown as { tunerOscillator: OscillatorNode }).tunerOscillator.frequency.value = 293.66; });
-  await expect(page.locator('.tuner-status')).toContainText('nearer D4', { timeout: 5000 });
+  await expect(page.locator('.tuner-status')).toHaveText('Target G · Hearing D4', { timeout: 5000 });
   await page.getByRole('button', { name: /A4.*440/ }).click();
   await page.evaluate(() => { (window as unknown as { tunerOscillator: OscillatorNode }).tunerOscillator.frequency.value = 440; });
   await expect(page.locator('.tuner-status')).toHaveText('In tune', { timeout: 5000 });
@@ -89,7 +89,7 @@ test('tuner shows synthetic A4 and updates cents when concert pitch changes', as
   await page.getByRole('spinbutton', { name: 'Concert pitch A4' }).fill('500');
   await expect(page.getByRole('alert')).toContainText('415 to 466');
   await expect(page.getByRole('button', { name: /A4.*442/ })).toBeVisible();
-  await expect(page.locator('.tuner-display')).not.toHaveAttribute('aria-live', /.+/);
+  await expect(page.locator('.tuner-surface')).not.toHaveAttribute('aria-live', /.+/);
 });
 
 test('tuner remains usable at a narrow viewport', async ({ page }) => {
@@ -97,7 +97,7 @@ test('tuner remains usable at a narrow viewport', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Instrument Tuner/ }).click();
   await expect(page.getByRole('button', { name: 'Start Listening' })).toBeVisible();
-  await expect(page.locator('.tuner-meter')).toBeVisible();
+  await expect(page.locator('.tuner-graph')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
