@@ -42,6 +42,7 @@ export interface Exercise {
   /** Optional teaching overlay. It never changes written notes or evaluation. */
   patterns?: PatternGroup[];
   patternChallenge?: boolean;
+  patternQuestion?: string;
   patternHintsByDefault?: boolean;
 }
 
@@ -133,6 +134,63 @@ export const EXERCISES: Exercise[] = [
     measures: bars('F#4:h@D2^ D4:h@D0', 'E4:h@D1 F#4:h@D2^', 'G4:w@D3'),
     patterns: [{ start: 2, end: 5, title: 'Morning Steps, measures 3–4', cue: 'F♯ and G are the close pair: fingers 2 and 3.', string: 'D', closePair: '2–3', demo: [2, 3, 4] }],
     patternChallenge: true, patternHintsByDefault: false, fingeringByDefault: false,
+  },
+  {
+    id: 'pattern-low-second-a', number: '05D', title: 'Low Second Finger on A', difficulty: 2, keySignature: 'C', tempo: 72, ...COMMON,
+    description: 'Compare high and low second finger on the A string.',
+    objective: 'Keep B and D in place while C♯ changes to C natural. Hear each group, then play up and back.',
+    measures: bars('B4:h@A1 C#5:h@A2^', 'D5:w@A3', 'C#5:h@A2^ B4:h@A1', 'B4:h@A1 Cn5:h@A2', 'D5:w@A3', 'Cn5:h@A2 B4:h@A1'),
+    patterns: [
+      { start: 0, end: 5, title: 'High second finger', cue: 'Fingers 2 and 3 close: C♯ to D is a half step.', string: 'A', closePair: '2–3', demo: [0, 1, 2] },
+      { start: 5, end: 10, title: 'Low second finger', cue: 'Fingers 1 and 2 close: B to C natural is a half step.', string: 'A', closePair: '1–2', demo: [5, 6, 7] },
+    ],
+    instructions: ['Only finger 2 moves; B and D stay in place.', 'The natural sign (♮) makes C natural clear after the C♯ group.'],
+    patternHintsByDefault: true, fingeringByDefault: true,
+  },
+  {
+    id: 'pattern-fourth-finger', number: '05E', title: 'Add the Fourth Finger', difficulty: 2, keySignature: 'C', tempo: 72, ...COMMON,
+    description: 'Extend the D-string shape to fourth finger, then compare open A.',
+    objective: 'Play E–F♯–G–A on D, then compare fourth-finger A with open A by ear.',
+    measures: bars('E4:h@D1 F#4:h@D2^', 'G4:h@D3 A4:h@D4', 'A4:h@A0 G4:h@D3'),
+    patterns: [{ start: 0, end: 6, title: 'D string through fourth finger', cue: 'Fingers 2 and 3 close. The two A4 notes suggest D string finger 4, then open A; both sound the same written pitch.', string: 'D', closePair: '2–3', demo: [0, 1, 2, 3, 4] }],
+    instructions: ['The two A4 notes suggest different ways to play the same pitch. Lift or change sound between them; one continuous note cannot count twice.', 'The microphone checks pitch, not which string or finger made it.'],
+    patternHintsByDefault: true, fingeringByDefault: true,
+  },
+  {
+    id: 'pattern-crossing-change', number: '05F', title: 'Change Shape at the Crossing', difficulty: 3, keySignature: 'G', tempo: 72, ...COMMON,
+    description: 'Change from high 2 on D to low 2 on A.',
+    objective: 'Look ahead: the close pair changes as you cross from D to A.',
+    measures: bars('D4:h@D0 E4:h@D1', 'F#4:h@D2^ G4:h@D3', 'A4:h@A0 B4:h@A1', 'Cn5:h@A2 D5:h@A3'),
+    patterns: [
+      { start: 0, end: 4, title: 'D string: high 2', cue: 'Fingers 2 and 3 close on D. Coming next on A: fingers 1 and 2 close.', string: 'D', closePair: '2–3', demo: [0, 1, 2, 3] },
+      { start: 4, end: 8, title: 'A string: low 2 next', cue: 'Now fingers 1 and 2 close: B to C natural. This differs from Move the Shape.', string: 'A', closePair: '1–2', demo: [4, 5, 6, 7] },
+    ],
+    instructions: ['In Move the Shape, high 2 stayed the same on both strings. Here it changes at the crossing.', 'Try the G Major Scale afterward to hear the G-major key signature.'],
+    patternHintsByDefault: true, fingeringByDefault: true,
+  },
+  {
+    id: 'pattern-out-of-order', number: '05G', title: 'Read the Shape Out of Order', difficulty: 3, keySignature: 'G', tempo: 72, ...COMMON,
+    description: 'Skip and reverse familiar D- and A-string notes.',
+    objective: 'Read each note on the staff rather than replaying a memorized scale.',
+    measures: bars('G4:h@D3 E4:h@D1', 'F#4:h@D2^ G4:h@D3', 'D5:h@A3 B4:h@A1', 'Cn5:h@A2 B4:h@A1'),
+    patterns: [
+      { start: 0, end: 4, title: 'D string: high 2', cue: 'G–E–F♯–G skips and turns. Fingers 2 and 3 close.', string: 'D', closePair: '2–3', demo: [0, 1, 2, 3] },
+      { start: 4, end: 8, title: 'A string: low 2', cue: 'D–B–C–B skips and turns. Fingers 1 and 2 close.', string: 'A', closePair: '1–2', demo: [4, 5, 6, 7] },
+    ],
+    patternHintsByDefault: false, fingeringByDefault: false,
+  },
+  {
+    id: 'pattern-spot-change', number: '05H', title: 'Spot the Change in a Tune', difficulty: 3, keySignature: 'G', tempo: 72, ...COMMON,
+    description: 'Find a hand-shape change in a short original tune.',
+    objective: 'Inspect both halves of the staff before playing. Where does the hand shape change?',
+    measures: bars('E4:h@D1 F#4:h@D2^', 'G4:h@D3 E4:h@D1', 'B4:h@A1 C5:h@A2', 'D5:h@A3 B4:h@A1'),
+    patterns: [
+      { start: 0, end: 4, title: 'D string: high 2', cue: 'On D, fingers 2 and 3 close: F♯ to G.', string: 'D', closePair: '2–3', demo: [0, 1, 2, 3] },
+      { start: 4, end: 8, title: 'A string: low 2', cue: 'At the A-string crossing, fingers 1 and 2 become close: B to C.', string: 'A', closePair: '1–2', demo: [4, 5, 6, 7] },
+    ],
+    patternChallenge: true,
+    patternQuestion: 'Inspect both halves of the tune. Where does the hand shape change, and which fingers are close on each string? Use the score page buttons before you answer.',
+    patternHintsByDefault: false, fingeringByDefault: false,
   },
   {
     id: 'd-major-scale', number: '06', title: 'D Major Scale', difficulty: 3, keySignature: 'D', tempo: 80, ...COMMON,

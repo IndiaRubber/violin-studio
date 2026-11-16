@@ -113,3 +113,44 @@ test('360px phrase crosses a score page while the revealed cue remains understan
   await expect(page.locator('.pattern-guide')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Show answer' })).toBeVisible();
 });
+
+test('05H lets a learner inspect both phone score pages before revealing the answer or listening', async ({ page }) => {
+  await syntheticMic(page);
+  await page.setViewportSize({ width: 360, height: 740 });
+  await open(page, 'Spot the Change in a Tune');
+  await expect(page.getByText('Measures 1–2 of 4')).toBeVisible();
+  await expect(page.locator('.pattern-guide')).toHaveCount(0);
+  await expect(page.locator('.note-hints.fingering')).toHaveCount(0);
+  await expect(page.getByLabel(/Show finger pattern cue/)).toBeDisabled();
+  await page.getByRole('button', { name: 'Next score page' }).click();
+  await expect(page.getByText('Measures 3–4 of 4')).toBeVisible();
+  await expect(page.getByRole('img', { name: /B4 half note, C5 half note, D5 half note, B4 half note/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Previous score page' }).click();
+  await expect(page.getByText('Measures 1–2 of 4')).toBeVisible();
+  await page.getByRole('button', { name: 'Show answer' }).click();
+  await expect(page.locator('.pattern-group-list')).toContainText('D string: high 2');
+  await expect(page.locator('.pattern-group-list')).toContainText('A string: low 2');
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  await expect(page.getByRole('button', { name: 'Next score page' })).toHaveCount(0);
+  await expect(page.getByText('Measures 1–2 of 4')).toBeVisible();
+  await page.getByRole('button', { name: 'Stop Listening' }).click();
+});
+
+test('05E identical A4s require a credible release in the synthetic microphone path', async ({ page }) => {
+  await syntheticMic(page);
+  await open(page, 'Add the Fourth Finger');
+  await page.getByRole('button', { name: 'Quick check' }).click();
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  for (const [index, hz] of [329.63, 369.99, 392, 440].entries()) {
+    await setMic(page, hz);
+    await expect(page.getByText(`Note ${index + 2} of 6`)).toBeVisible({ timeout: 5000 });
+  }
+  await page.waitForTimeout(650);
+  await expect(page.getByText('Note 5 of 6')).toBeVisible();
+  await setMic(page, 440, 0);
+  await page.waitForTimeout(300);
+  await setMic(page, 440);
+  await expect(page.getByText('Note 6 of 6')).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: 'Stop Listening' }).click();
+});

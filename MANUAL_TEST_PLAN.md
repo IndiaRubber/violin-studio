@@ -50,6 +50,12 @@ Use Android Chrome at the production URL where possible, and a real violin. Keep
 5. In **Spot It Before You Play**, find the close pair in the staff before **Show answer**. Check that no pattern or fingering hint reveals it prematurely. Reveal the answer, play the short excerpt in Guided mode, then use **Repeat with cue hidden**. At 360px, confirm the cue remains understandable when E–F♯–G crosses the score page turn.
 6. Hide the pattern cue independently of note names and finger suggestions. Test silence, bow attacks, slightly flat/sharp notes, and a sustained wrong pitch. Confirm only a stable matching pitch advances; check that Stop and navigation release the microphone.
 
+7. In **Low Second Finger on A**, hear and play B–C♯–D and B–C-natural–D up and back. Check the sharp and natural signs, the change from fingers 2–3 close to 1–2 close, and that B and D remain the same pitches.
+8. In **Add the Fourth Finger**, play E–F♯–G–A using finger 4 on D, then the following open A. Compare them by ear. A continuous A sound must not complete both written A4 notes; separate the notes by a bow lift or clear interruption. The app cannot verify which string produced either A.
+9. In **Change Shape at the Crossing**, read G major's F♯ key signature and play D–E–F♯–G on D, then A–B–C-natural–D on A. Check that the upcoming low-2 change is cued before the crossing. Follow the link to the unchanged G Major Scale.
+10. In **Read the Shape Out of Order**, leave the pattern cue hidden and read G–E–F♯–G, then D–B–C–B. Reveal the cue only if needed; confirm the exercise follows the written order rather than a scale.
+11. In **Spot the Change in a Tune**, use a 360px portrait view. Before listening or revealing the answer, turn to the second score page and back, and identify the crossing and close pair on each string. Check that fingering hints are hidden until **Show answer**. Play in Guided mode, complete the phrase, and repeat with the cue hidden. Confirm normal automatic score following resumes while listening.
+
 Record browser/device, A4 setting, microphone placement, detected frequency, clarity, and any false acceptance or missed note. Automated browser tests use a synthetic microphone and do not validate real violin playing or Android audio hardware.
 
 ## Instrument Tuner acceptance

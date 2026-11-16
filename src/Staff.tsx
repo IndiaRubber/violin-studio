@@ -20,6 +20,8 @@ export interface StaffProps {
   labels: (string | null)[];
   /** Suggested fingering under each note, when shown. */
   fingering?: (string | null)[] | null;
+  /** Read-only page inspection before a pattern challenge starts; normal score following resumes on play. */
+  allowPagePreview?: boolean;
 }
 
 /**
@@ -28,10 +30,11 @@ export interface StaffProps {
  * printed accidentals, barlines, and ledger lines. Long exercises are shown a page of
  * measures at a time; the page turns when the current note moves past it.
  */
-export function Staff({ notes, currentIndex, keySignature = 'C', tempo, labels, fingering }: StaffProps) {
+export function Staff({ notes, currentIndex, keySignature = 'C', tempo, labels, fingering, allowPagePreview = false }: StaffProps) {
   const host = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(700);
   const [positions, setPositions] = useState<Map<number, number>>(new Map());
+  const [previewPage, setPreviewPage] = useState<number | null>(null);
   useEffect(() => {
     if (!host.current) return;
     const observer = new ResizeObserver(entries => setWidth(entries[0].contentRect.width));
@@ -48,7 +51,8 @@ export function Staff({ notes, currentIndex, keySignature = 'C', tempo, labels, 
   const renderWidth = Math.max(320, Math.floor(width));
   const pages = useMemo(() => paginate(measures.map(m => m.length), renderWidth - LEFT * 2, headerWidth(keySignature)), [measures, renderWidth, keySignature]);
   const focusIndex = Math.min(currentIndex, notes.length - 1);
-  const pageIndex = pageOf(pages, Math.max(0, measures.findIndex(m => m.includes(focusIndex))));
+  const followedPage = pageOf(pages, Math.max(0, measures.findIndex(m => m.includes(focusIndex))));
+  const pageIndex = allowPagePreview && previewPage !== null ? Math.min(previewPage, pages.length - 1) : followedPage;
   const page = pages[pageIndex];
 
   useEffect(() => {
@@ -113,6 +117,10 @@ export function Staff({ notes, currentIndex, keySignature = 'C', tempo, labels, 
   const label = `Treble clef staff, ${keySignature === 'C' ? 'no key signature' : `key of ${keySignature} major`}, 4/4${page ? `, measures ${page.first + 1} to ${page.last + 1} of ${measures.length}` : ''}: ${visibleIndices.map(i => `${notes[i].name} ${DURATION_NAMES[notes[i].duration ?? 'w']}${i === currentIndex ? ' current' : i < currentIndex ? ' complete' : ''}`).join(', ')}`;
   return <div className="staff-wrap">
     {pages.length > 1 && page && <p className="staff-page">Measures {page.first + 1}–{page.last + 1} of {measures.length}</p>}
+    {allowPagePreview && pages.length > 1 && <div className="staff-preview-controls" aria-label="Inspect score pages">
+      <button type="button" className="secondary" onClick={() => setPreviewPage(Math.max(0, pageIndex - 1))} disabled={pageIndex === 0}>Previous score page</button>
+      <button type="button" className="secondary" onClick={() => setPreviewPage(Math.min(pages.length - 1, pageIndex + 1))} disabled={pageIndex === pages.length - 1}>Next score page</button>
+    </div>}
     <div className="staff" ref={host} role="img" aria-label={label} />
     <div className="note-hints">{visibleIndices.map(index => <span key={notes[index].id} className={index === currentIndex ? 'active' : index < currentIndex ? 'done' : ''} style={{ left: positions.get(index) ?? 0 }}>{labels[index] ?? ''}</span>)}</div>
     {fingering && <div className="note-hints fingering" aria-label="Suggested string and finger">{visibleIndices.map(index => <span key={notes[index].id} className={index === currentIndex ? 'active' : ''} style={{ left: positions.get(index) ?? 0 }}>{fingering[index] ?? ''}</span>)}</div>}

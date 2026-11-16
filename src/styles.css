@@ -183,6 +183,8 @@ main{width:calc(100% - 26px)}
 .pattern-guide-top strong{font-size:19px}
 .pattern-guide-top .eyebrow{margin:0 0 3px}
 .pattern-guide-top button{white-space:nowrap;min-height:44px}
+.staff-preview-controls{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.staff-preview-controls button{min-height:40px;padding:6px 10px}
 .pattern-group-list{display:flex;gap:8px;flex-wrap:wrap;padding:0;margin:8px 0;list-style:none;font-size:13px}
 .pattern-group-list li{padding:5px 8px;border:1px solid #d5dcd9;border-radius:8px;color:#53656e}
 .pattern-group-list li.active{border-color:#a34b29;color:#823b20;font-weight:700}

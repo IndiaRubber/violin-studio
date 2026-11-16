@@ -259,12 +259,12 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     <div className="practice-heading"><button className="text-button" onClick={() => { stopListening(); onBack(); }}>← Exercises</button><span>Exercise {exercise.number}{focus ? ` / ${focus} focus` : ''}</span></div>
     <h1>{exercise.title}</h1>
     <p className="objective">{exercise.objective}</p>
-    {exercise.patternChallenge && !answerShown && <div className="pattern-question"><strong>Look before you listen</strong><p>Find the two notes a half step apart on the staff. Show the answer when you are ready, or play from your own reading.</p><button type="button" className="secondary" onClick={() => setAnswerShown(true)}>Show answer</button></div>}
+    {exercise.patternChallenge && !answerShown && <div className="pattern-question"><strong>Look before you listen</strong><p>{exercise.patternQuestion ?? 'Find the two notes a half step apart on the staff. Show the answer when you are ready, or play from your own reading.'}</p><button type="button" className="secondary" onClick={() => setAnswerShown(true)}>Show answer</button></div>}
     <div className="progress-label"><span>Note {Math.min(evaluation.index + 1, notes.length)} of {notes.length}</span><span>{evaluation.index} complete</span></div>
     <div className="progress-track"><div style={{ width: `${evaluation.index / notes.length * 100}%` }} /></div>
     <div className="score-card" ref={scoreCard}>
       <div className="score-heading"><span>{sustain ? 'Find each note, then hold it' : 'Play each note'}</span><span className="mode-tag">{sustain ? `${tempo} BPM` : 'Quick check'}</span></div>
-      <Staff notes={notes} currentIndex={evaluation.index} keySignature={exercise.keySignature} tempo={sustain ? tempo : undefined} labels={labels} fingering={fingering} />
+      <Staff notes={notes} currentIndex={evaluation.index} keySignature={exercise.keySignature} tempo={sustain ? tempo : undefined} labels={labels} fingering={fingering} allowPagePreview={exercise.id === 'pattern-spot-change' && !listening && evaluation.index === 0} />
     </div>
     {showPattern && exercise.patterns && <PatternGuide groups={exercise.patterns} active={patternGroup} onHear={hearPattern} playing={patternPlaying} />}
     <div className="feedback-grid">
@@ -293,7 +293,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
         if (exercise.patternChallenge) setCueHidden(!event.target.checked);
         else setPrefs(p => ({ ...p, patterns: { ...p.patterns, [exercise.id]: event.target.checked } }));
       }} /> Show finger pattern cue{exercise.patternChallenge && !answerShown ? ' (after Show answer)' : ''}</label>}
-      {exercise.id === 'pattern-move-shape' && onOpenExercise && <button type="button" className="secondary" onClick={() => { stopListening(); onOpenExercise('d-major-scale'); }}>Try D Major Scale →</button>}
+      {onOpenExercise && (exercise.id === 'pattern-move-shape' || exercise.id === 'pattern-crossing-change') && <button type="button" className="secondary" onClick={() => { stopListening(); onOpenExercise(exercise.id === 'pattern-move-shape' ? 'd-major-scale' : 'g-major-scale'); }}>Try {exercise.id === 'pattern-move-shape' ? 'D' : 'G'} Major Scale →</button>}
     </div>
     <details className="help"><summary>Reading this exercise</summary><dl>
       {exercise.instructions?.length ? <><dt>This exercise</dt>{exercise.instructions.map(line => <dd key={line}>{line}</dd>)}</> : null}

@@ -48,10 +48,10 @@ test('library lists the curriculum and every exercise renders valid notation', a
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
   const cards = page.locator('.library .exercise-card');
-  await expect(cards).toHaveCount(13);
+  await expect(cards).toHaveCount(18);
   const numbers = await page.locator('.card-number').allTextContents();
-  expect(numbers).toEqual(['01', '02', '03', '04', '05', '05A', '05B', '05C', '06', '07', '08A', '08B', '08C']);
-  for (let i = 0; i < 13; i++) {
+  expect(numbers).toEqual(['01', '02', '03', '04', '05', '05A', '05B', '05C', '05D', '05E', '05F', '05G', '05H', '06', '07', '08A', '08B', '08C']);
+  for (let i = 0; i < 18; i++) {
     await cards.nth(i).click();
     const svg = page.locator('.staff svg');
     await expect(svg).toBeVisible();
