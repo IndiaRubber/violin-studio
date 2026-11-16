@@ -36,7 +36,16 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await expect(page.locator('.tone-status')).toHaveCount(0, { timeout: 4000 });
   // Milestone 2B: every library exercise is bundled and opens offline.
   await page.getByRole('button', { name: '← Exercises' }).click();
-  await expect(page.locator('.library .exercise-card')).toHaveCount(10);
+  await expect(page.locator('.library .exercise-card')).toHaveCount(13);
+  for (const title of ['Move One Finger', 'Move the Shape', 'Spot It Before You Play']) {
+    await page.getByRole('button', { name: new RegExp(title) }).click();
+    await expect(page.locator('.staff svg')).toBeVisible();
+    if (title === 'Move One Finger') {
+      await page.getByRole('button', { name: 'Hear pattern' }).click();
+      await expect(page.getByText('Playing the pattern — microphone paused throughout')).toBeVisible();
+    }
+    await page.getByRole('button', { name: '← Exercises' }).click();
+  }
   await page.getByRole('button', { name: /D Major Scale/ }).click();
   await expect(page.getByRole('img', { name: /key of D major/ })).toBeVisible();
   await expect(page.locator('.staff svg')).toHaveAttribute('data-note-durations', /^h h/);

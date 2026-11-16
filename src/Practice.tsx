@@ -11,6 +11,9 @@ import { Staff } from './Staff';
 import type { PracticeEvaluation, ResetReason } from './sustain';
 import { clampTempo, MAX_BPM, MIN_BPM, noteMs, TEMPO_STEP, WHOLE_NOTE_BEATS } from './tempo';
 import { ReferenceTonePlayer } from './tone';
+import { activePattern, demoFrequencies, patternVisible } from './pattern';
+import { PatternGuide } from './PatternGuide';
+import { PatternDemo, patternDemoMs } from './pattern-demo';
 
 export interface PracticeSummary {
   exerciseId: string;
@@ -56,11 +59,14 @@ function guidance(evaluation: PracticeEvaluation, mode: PracticeMode, listening:
   }
 }
 
-export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null }: { exercise: Exercise; a4: number; onBack: () => void; onComplete: (summary: PracticeSummary) => void; initialFocus?: string | null }) {
+export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, initialFocus = null }: { exercise: Exercise; a4: number; onBack: () => void; onComplete: (summary: PracticeSummary) => void; onOpenExercise?: (id: string) => void; initialFocus?: string | null }) {
   const [prefs, setPrefs] = useState(loadPreferences);
   const { mode, names } = prefs;
   const tempo = prefs.tempos[exercise.id] ?? exercise.tempo;
-  const showFingering = prefs.fingering[exercise.id] ?? exercise.fingeringByDefault;
+  const [answerShown, setAnswerShown] = useState(false);
+  const [cueHidden, setCueHidden] = useState(false);
+  const showFingering = (!exercise.patternChallenge || answerShown) && (prefs.fingering[exercise.id] ?? exercise.fingeringByDefault);
+  const showPattern = patternVisible(exercise, prefs.patterns[exercise.id], answerShown, cueHidden);
   useEffect(() => savePreferences(prefs), [prefs]);
   const focusChoices = useMemo(() => exercise.stringFocus ? [...new Set(practiceNotes(exercise).map(n => n.name))] : [], [exercise]);
   const [focus, setFocus] = useState<string | null>(initialFocus && focusChoices.includes(initialFocus) ? initialFocus : null);
@@ -73,11 +79,14 @@ export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null
   const [lastReset, setLastReset] = useState<ResetReason>(null);
   const [audioDetails, setAudioDetails] = useState<AudioDiagnostics | null>(null);
   const [toneState, setToneState] = useState<'idle' | 'playing' | 'settling'>('idle');
+  const [patternPlaying, setPatternPlaying] = useState(false);
   const audio = useRef<AudioSession | null>(null);
   const practice = useRef<PracticeSession>(null as unknown as PracticeSession);
   practice.current ??= new PracticeSession(notes, mode, tempo);
   const player = useRef<ReferenceTonePlayer | null>(null);
+  const patternDemo = useRef<PatternDemo | null>(null);
   const settleTimer = useRef<number | undefined>(undefined);
+  const toneGeneration = useRef(0);
   const generation = useRef(0);
   const published = useRef({ at: -Infinity, key: '' });
   const scoreCard = useRef<HTMLDivElement>(null);
@@ -95,13 +104,24 @@ export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null
     practice.current.restartNote();
     setEvaluation(e => ({ ...e, phase: e.phase === 'hold' ? 'find' : e.phase, state: 'quiet', holdMs: 0, beat: 0, cents: null }));
   };
+  const stopPatternDemo = () => {
+    if (!patternDemo.current?.playing) return;
+    patternDemo.current.stop();
+    practice.current.suppress(performance.now() + REFERENCE_TONE.settleMs);
+    setPatternPlaying(false);
+    setToneState('settling');
+    window.clearTimeout(settleTimer.current);
+    settleTimer.current = window.setTimeout(() => setToneState('idle'), REFERENCE_TONE.settleMs);
+  };
   const stopListening = () => {
+    stopPatternDemo();
     generation.current++;
     audio.current?.stop(); audio.current = null;
     setListening(false); setStarting(false); setReading(null); setAudioDetails(null);
     abandonHold();
   };
   const restartExercise = (nextNotes = notes, nextMode = mode) => {
+    stopPatternDemo();
     const suppressedUntil = practice.current.suppressionEnd; // a playing reference tone must stay ignored
     practice.current = new PracticeSession(nextNotes, nextMode, tempo);
     if (suppressedUntil > performance.now()) practice.current.suppress(suppressedUntil);
@@ -113,6 +133,7 @@ export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null
     generation.current++;
     audio.current?.stop();
     player.current?.dispose();
+    patternDemo.current?.dispose();
     window.clearTimeout(settleTimer.current);
   }, []);
   // Changing the string focus or A4 reference starts the exercise again with the new notes.
@@ -134,6 +155,7 @@ export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null
     const token = ++generation.current;
     const session = new AudioSession((next, time) => {
       if (token !== generation.current) return;
+      if (patternDemo.current?.playing) practice.current.suppress(time + REFERENCE_TONE.settleMs);
       const result = practice.current.evaluate(next, time);
       if (result.reset) countAttempt(result.index);
       publish(next, result, time);
@@ -158,9 +180,12 @@ export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null
   const targetIndex = Math.min(evaluation.index, notes.length - 1);
   const target = notes[targetIndex];
   const playReference = async () => {
+    stopPatternDemo();
     window.clearTimeout(settleTimer.current);
     player.current ??= new ReferenceTonePlayer();
+    const toneToken = ++toneGeneration.current;
     const settle = () => {
+      if (toneToken !== toneGeneration.current) return;
       practice.current.suppress(performance.now() + REFERENCE_TONE.settleMs);
       setToneState('settling');
       settleTimer.current = window.setTimeout(() => setToneState('idle'), REFERENCE_TONE.settleMs);
@@ -171,11 +196,40 @@ export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null
       practice.current.suppress(performance.now() + REFERENCE_TONE.durationMs + REFERENCE_TONE.settleMs + 100);
       setToneState('playing');
       const duration = await player.current.play(target.frequency, settle);
+      if (toneToken !== toneGeneration.current) return;
       practice.current.suppress(performance.now() + duration + REFERENCE_TONE.settleMs);
     } catch {
+      if (toneToken !== toneGeneration.current) return;
       setToneState('idle');
       setError('The reference note could not play. Check that the device is not muted, then try again.');
     }
+  };
+
+  const hearPattern = () => {
+    const group = activePattern(exercise, evaluation.index) ?? exercise.patterns?.[0];
+    if (!group) return;
+    if (patternDemo.current?.playing) { stopPatternDemo(); return; }
+    toneGeneration.current++;
+    player.current?.dispose();
+    player.current = null;
+    window.clearTimeout(settleTimer.current);
+    setToneState('idle');
+    const frequencies = demoFrequencies(notes, group);
+    patternDemo.current ??= new PatternDemo();
+    // One continuous suppression covers tones, gaps, and settling. The demo never evaluates a note.
+    practice.current.suppress(performance.now() + patternDemoMs(frequencies.length));
+    setPatternPlaying(true);
+    patternDemo.current.start(frequencies, () => {
+      practice.current.suppress(performance.now() + REFERENCE_TONE.settleMs);
+      setPatternPlaying(false);
+      setToneState('settling');
+      settleTimer.current = window.setTimeout(() => setToneState('idle'), REFERENCE_TONE.settleMs);
+    }, () => {
+      practice.current.suppress(performance.now() + REFERENCE_TONE.settleMs);
+      setPatternPlaying(false);
+      setToneState('idle');
+      setError('The pattern could not play. Check that the device is not muted, then try again.');
+    });
   };
 
   const changeTempo = (value: number) => {
@@ -198,25 +252,28 @@ export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null
   const showTargetName = names === 'always';
   const labels = notes.map((note, i) => names === 'always' || (names === 'after' && i < evaluation.index) ? note.name : i < evaluation.index ? '✓' : i === evaluation.index ? 'Now' : '·');
   const fingering = showFingering ? notes.map(note => note.fingering ? fingeringLabel(note.fingering) : null) : null;
+  const patternGroup = activePattern(exercise, evaluation.index);
   const durations = new Set(notes.map(n => n.duration ?? 'w'));
 
   return <section className="practice">
     <div className="practice-heading"><button className="text-button" onClick={() => { stopListening(); onBack(); }}>← Exercises</button><span>Exercise {exercise.number}{focus ? ` / ${focus} focus` : ''}</span></div>
     <h1>{exercise.title}</h1>
     <p className="objective">{exercise.objective}</p>
+    {exercise.patternChallenge && !answerShown && <div className="pattern-question"><strong>Look before you listen</strong><p>Find the two notes a half step apart on the staff. Show the answer when you are ready, or play from your own reading.</p><button type="button" className="secondary" onClick={() => setAnswerShown(true)}>Show answer</button></div>}
     <div className="progress-label"><span>Note {Math.min(evaluation.index + 1, notes.length)} of {notes.length}</span><span>{evaluation.index} complete</span></div>
     <div className="progress-track"><div style={{ width: `${evaluation.index / notes.length * 100}%` }} /></div>
     <div className="score-card" ref={scoreCard}>
       <div className="score-heading"><span>{sustain ? 'Find each note, then hold it' : 'Play each note'}</span><span className="mode-tag">{sustain ? `${tempo} BPM` : 'Quick check'}</span></div>
       <Staff notes={notes} currentIndex={evaluation.index} keySignature={exercise.keySignature} tempo={sustain ? tempo : undefined} labels={labels} fingering={fingering} />
     </div>
+    {showPattern && exercise.patterns && <PatternGuide groups={exercise.patterns} active={patternGroup} onHear={hearPattern} playing={patternPlaying} />}
     <div className="feedback-grid">
       <div className="feedback-card target-card"><div><p className="eyebrow">Target</p><strong>{showTargetName ? target.name : '?'}</strong><small>{showTargetName ? `${target.frequency.toFixed(2)} Hz` : 'Read the staff'}</small>{showFingering && target.fingering && <small className="fingering-hint">{describeFingering(target.fingering)}</small>}</div>
         <button type="button" className={`tone-button ${toneState !== 'idle' ? 'is-playing' : ''}`} onClick={() => void playReference()} aria-pressed={toneState === 'playing'}><span aria-hidden="true">{toneState === 'playing' ? '■' : '♪'}</span>{toneState === 'playing' ? 'Stop' : 'Hear note'}</button></div>
       <div className="feedback-card"><p className="eyebrow">Detected</p><strong>{reading?.smoothHz && evaluation.state !== 'reference' ? frequencyToNote(reading.smoothHz, a4) : '—'}</strong><small>{evaluation.state === 'reference' ? 'Paused for reference' : reading?.reason === 'quiet' ? 'Insufficient signal' : reading?.reason === 'uncertain' || reading?.reason === 'outlier' ? 'Uncertain detection' : listening ? 'Listening' : 'Microphone off'}</small></div>
       <div className="feedback-card meter-card"><p className="eyebrow">Intonation <strong>{cents === null ? '—' : `${cents > 0 ? '+' : ''}${Math.round(cents)} cents`}</strong></p><div className="meter"><span className="center-line"/><span className="meter-needle" style={{ left: `${50 + meterCents / 120 * 100}%` }}/></div><div className="meter-labels"><span>Flat</span><span>In tune</span><span>Sharp</span></div></div>
     </div>
-    {toneState !== 'idle' && <p className="tone-status" role="status">{toneState === 'playing' ? `♪ Playing the reference ${showTargetName ? target.name : 'note'} — microphone paused` : 'Microphone resuming…'}</p>}
+    {(toneState !== 'idle' || patternPlaying) && <p className="tone-status" role="status">{patternPlaying ? '♪ Playing the pattern — microphone paused throughout' : toneState === 'playing' ? `♪ Playing the reference ${showTargetName ? target.name : 'note'} — microphone paused` : 'Microphone resuming…'}</p>}
     {sustain && <div className={`hold-card ${holding ? 'is-holding' : ''}`} aria-label={holding ? `Holding: beat ${evaluation.beat} of ${beats}` : 'Hold not started'}>
       <div className="beats">{Array.from({ length: beats }, (_, i) => <span key={i} className={`beat ${holding && i < evaluation.beat - 1 ? 'done' : ''} ${holding && i === evaluation.beat - 1 ? 'now' : ''}`}>{i + 1}</span>)}</div>
       <div className="hold-track"><div style={{ width: `${progress * 100}%` }} /></div>
@@ -230,7 +287,13 @@ export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null
       <fieldset className="tempo-control" disabled={!sustain}><legend>Tempo <span className="hint">(suggested {exercise.tempo})</span></legend><div className="stepper"><button type="button" aria-label="Slower" onClick={() => changeTempo(tempo - TEMPO_STEP)} disabled={tempo <= MIN_BPM}>−</button><output aria-live="off" aria-label="Tempo">{tempo} BPM</output><button type="button" aria-label="Faster" onClick={() => changeTempo(tempo + TEMPO_STEP)} disabled={tempo >= MAX_BPM}>+</button></div></fieldset>
       {focusChoices.length > 0 && <fieldset className="string-focus"><legend>Strings</legend><div className="chips">{[null, ...focusChoices].map(choice => <button key={choice ?? 'all'} type="button" aria-pressed={focus === choice} onClick={() => { if (focus !== choice) setFocus(choice); }}>{choice ?? 'All'}</button>)}</div></fieldset>}
       <fieldset><legend>Note names</legend><div className="segmented">{(['always', 'after', 'off'] as NameHints[]).map(value => <button key={value} type="button" aria-pressed={names === value} onClick={() => setPrefs(p => ({ ...p, names: value }))}>{NAME_HINT_LABELS[value]}</button>)}</div></fieldset>
-      <label className="hint-toggle"><input type="checkbox" checked={showFingering} onChange={event => setPrefs(p => ({ ...p, fingering: { ...p.fingering, [exercise.id]: event.target.checked } }))} /> Show suggested string &amp; finger</label>
+      <label className="hint-toggle"><input type="checkbox" checked={showFingering} disabled={exercise.patternChallenge && !answerShown} onChange={event => setPrefs(p => ({ ...p, fingering: { ...p.fingering, [exercise.id]: event.target.checked } }))} /> Show suggested string &amp; finger{exercise.patternChallenge && !answerShown ? ' (after Show answer)' : ''}</label>
+      {exercise.patterns && <label className="hint-toggle"><input type="checkbox" checked={showPattern} disabled={exercise.patternChallenge && !answerShown} onChange={event => {
+        if (!event.target.checked) stopPatternDemo();
+        if (exercise.patternChallenge) setCueHidden(!event.target.checked);
+        else setPrefs(p => ({ ...p, patterns: { ...p.patterns, [exercise.id]: event.target.checked } }));
+      }} /> Show finger pattern cue{exercise.patternChallenge && !answerShown ? ' (after Show answer)' : ''}</label>}
+      {exercise.id === 'pattern-move-shape' && onOpenExercise && <button type="button" className="secondary" onClick={() => { stopListening(); onOpenExercise('d-major-scale'); }}>Try D Major Scale →</button>}
     </div>
     <details className="help"><summary>Reading this exercise</summary><dl>
       {exercise.instructions?.length ? <><dt>This exercise</dt>{exercise.instructions.map(line => <dd key={line}>{line}</dd>)}</> : null}
@@ -241,6 +304,7 @@ export function Practice({ exercise, a4, onBack, onComplete, initialFocus = null
       <dt>Tempo (BPM)</dt><dd>Beats per minute. “♩ = 60” means one beat per second. Lower numbers are slower. In guided practice the count for each note starts once your pitch is steady.</dd>
       {exercise.keySignature !== 'C' ? <><dt>Key signature</dt><dd>The sharps after the clef: {KEY_NAMES[exercise.keySignature]}. They apply to every note with that letter, in every octave, unless a natural sign (♮) cancels them.</dd></> : <><dt>Sharp sign (♯)</dt><dd>A ♯ before a note raises it a half step. It lasts until the next bar line.</dd></>}
       <dt>Fingering hints</dt><dd>“D↑2” means D string, high second finger. 0 is the open string. These are suggestions — the app hears pitch only and cannot tell which string or finger you used.</dd>
+      {exercise.patterns && <><dt>Finger patterns</dt><dd>A half step is the smaller pitch gap; a whole step is twice as wide in pitch. The spacing strip is relative, not a ruler. Inspired by <a href="https://www.youtube.com/watch?v=_Bhf6N3qsf4" target="_blank" rel="noopener noreferrer">Francisca Portugal’s finger-pattern video</a>. All exercises and diagrams here are original.</dd></>}
       <dt>Flat and sharp intonation</dt><dd>Flat means your pitch is lower than the written note; sharp means higher. Cents measure the gap: 100 cents is one half step.</dd>
     </dl></details>
     <details className="diagnostics"><summary>Developer diagnostics</summary><dl><dt>Raw frequency</dt><dd>{reading?.rawHz?.toFixed(1) ?? '—'} Hz</dd><dt>Smoothed frequency</dt><dd>{reading?.smoothHz?.toFixed(1) ?? '—'} Hz</dd><dt>Clarity</dt><dd>{reading?.clarity.toFixed(3) ?? '—'}</dd><dt>Input level (RMS)</dt><dd>{reading?.rms.toFixed(4) ?? '—'}</dd><dt>Estimated note</dt><dd>{reading?.smoothHz ? frequencyToNote(reading.smoothHz, a4) : '—'}</dd><dt>Target deviation</dt><dd>{cents?.toFixed(1) ?? '—'} cents</dd><dt>Phase / state</dt><dd>{evaluation.phase} / {evaluation.state}</dd><dt>Match / hold</dt><dd>{Math.round(evaluation.stableMs)} ms / {Math.round(evaluation.holdMs)} of {Math.round(evaluation.requiredMs)} ms</dd><dt>Hold fault time</dt><dd>{Math.round(evaluation.faultMs)} ms</dd><dt>Sample rate</dt><dd>{audioDetails?.sampleRate ?? '—'} Hz</dd><dt>AudioContext</dt><dd>{audioDetails?.contextState ?? 'unavailable'}</dd><dt>Requested processing</dt><dd>Echo: off · Noise: off · Gain: off</dd><dt>Applied track settings</dt><dd>{audioDetails?.applied ? JSON.stringify(audioDetails.applied) : 'Unavailable'}</dd></dl></details>

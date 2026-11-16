@@ -8,9 +8,10 @@ const names = (id: string) => practiceNotes(findExercise(id)!).map(note => note.
 const durations = (id: string) => practiceNotes(findExercise(id)!).map(note => note.duration).join('');
 
 describe('exercise library', () => {
-  it('contains the Milestone 2B curriculum in order with unique stable ids', () => {
+  it('preserves the existing curriculum IDs and inserts three finger-pattern lessons before scales', () => {
     expect(EXERCISES.map(e => `${e.number} ${e.title}`)).toEqual([
       '01 Open Strings', '02 String Crossings', '03 First Finger', '04 D-String Walk', '05 A-String Walk',
+      '05A Move One Finger', '05B Move the Shape', '05C Spot It Before You Play',
       '06 D Major Scale', '07 G Major Scale', '08A Morning Steps', '08B A-String Song', '08C Two-String Tune',
     ]);
     expect(new Set(EXERCISES.map(e => e.id)).size).toBe(EXERCISES.length);
@@ -104,6 +105,6 @@ describe('exercise library', () => {
   });
 
   it('fingering hints default on for early exercises and off for scales and melodies', () => {
-    expect(EXERCISES.filter(e => e.fingeringByDefault).map(e => e.number)).toEqual(['01', '02', '03', '04', '05']);
+    expect(EXERCISES.filter(e => e.fingeringByDefault).map(e => e.number)).toEqual(['01', '02', '03', '04', '05', '05A', '05B']);
   });
 });

@@ -41,6 +41,17 @@ Use Android Chrome at the production URL where possible, and a real violin. Keep
 9. Change the A4 reference in the tuner (e.g. 442) and confirm scale targets and reference tones move accordingly.
 10. Turn on airplane mode after the app has loaded once; confirm every exercise opens.
 
+## Milestone 2D: finger patterns (real violin and Android still unverified)
+
+1. On Android Chrome at the HTTPS site, install or open the app, wait for **Available offline**, then repeat these checks in airplane mode. Open each Finger Patterns lesson; confirm treble staff, active note, complete 4/4 measures, readable controls at 360px portrait, and no horizontal clipping.
+2. In **Move One Finger**, hear the high and low groups. Confirm F♯ has a sharp and F natural has a courtesy natural on the staff; E and G do not change. Bow E–F♯–G–F♯–E, then E–F–G–F–E in Guided mode. Compare the sound and finger spacing with a teacher or conventional tuner. The app hears pitch only; its fingering is a suggestion.
+3. Play **Hear pattern** while listening and deliberately play matching notes into the microphone, including the gaps between demonstration notes. Confirm no note advances during playback or the settling period. Restart during playback and leave the lesson during playback; confirm sound stops and no stale note is credited.
+4. In **Move the Shape**, play D–E–F♯–G on D, then A–B–C♯–D on A. Check that the optional text and strip describe fingers 2 and 3 close on both strings. Follow **Try D Major Scale**, show the optional groups, and confirm the scale notation, tempo, and key signature are unchanged.
+5. In **Spot It Before You Play**, find the close pair in the staff before **Show answer**. Check that no pattern or fingering hint reveals it prematurely. Reveal the answer, play the short excerpt in Guided mode, then use **Repeat with cue hidden**. At 360px, confirm the cue remains understandable when E–F♯–G crosses the score page turn.
+6. Hide the pattern cue independently of note names and finger suggestions. Test silence, bow attacks, slightly flat/sharp notes, and a sustained wrong pitch. Confirm only a stable matching pitch advances; check that Stop and navigation release the microphone.
+
+Record browser/device, A4 setting, microphone placement, detected frequency, clarity, and any false acceptance or missed note. Automated browser tests use a synthetic microphone and do not validate real violin playing or Android audio hardware.
+
 ## Instrument Tuner acceptance
 
 Use a conventional chromatic tuner as a reference. Tune the same real violin with both devices in the same room. Record microphone distance and device, A4 setting, detected frequency, note and octave, signed cents, clarity, and RMS. Allow for small differences from equal temperament when comparing pure violin fifths.

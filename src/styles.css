@@ -175,6 +175,24 @@ main{width:calc(100% - 26px)}
 .tone-button span{font-size:20px;line-height:1}
 .meter-card .eyebrow strong{display:inline;font-size:18px;letter-spacing:0;text-transform:none;color:#20313b;margin-left:8px}
 .feedback-card.meter-card{min-height:0}
+/* Finger-pattern teaching overlay; score layout and pagination remain unchanged. */
+.library-section{font-family:Newsreader,Georgia,serif;font-size:25px;margin:32px 0 4px}
+.pattern-question,.pattern-guide{margin:12px 0;padding:14px 18px;background:#fffdfa;border:1px solid #d9dfd8;border-radius:14px}
+.pattern-question p,.pattern-guide p{margin:5px 0 10px;line-height:1.4;color:#52636b}
+.pattern-guide-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pattern-guide-top strong{font-size:19px}
+.pattern-guide-top .eyebrow{margin:0 0 3px}
+.pattern-guide-top button{white-space:nowrap;min-height:44px}
+.pattern-group-list{display:flex;gap:8px;flex-wrap:wrap;padding:0;margin:8px 0;list-style:none;font-size:13px}
+.pattern-group-list li{padding:5px 8px;border:1px solid #d5dcd9;border-radius:8px;color:#53656e}
+.pattern-group-list li.active{border-color:#a34b29;color:#823b20;font-weight:700}
+.fingerboard-details{font-size:13px;color:#53656e}
+.fingerboard-details summary{cursor:pointer;font-weight:700;min-height:30px}
+.fingerboard-strip{position:relative;height:48px;max-width:380px;margin:8px 0 4px}
+.fingerboard-line{position:absolute;left:7%;right:11%;top:24px;border-top:5px solid #b5aca0;border-radius:3px}
+.fingerboard-finger{position:absolute;top:9px;transform:translateX(-50%);width:30px;height:30px;border-radius:50%;background:#a34b29;color:#fff;display:grid;place-items:center;font-weight:700}
+.fingerboard-details small{display:block;line-height:1.4}
+@media(max-width:390px){.pattern-guide-top{align-items:flex-start;flex-wrap:wrap}.pattern-guide-top button{width:100%}}
 @media(max-width:700px){
   .tone-button{width:auto;padding:6px 8px}
   .score-heading{font-size:13px}

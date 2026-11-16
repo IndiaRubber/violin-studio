@@ -3,6 +3,7 @@ import { REFERENCE_TONE } from './config';
 type ToneContext = Pick<AudioContext, 'currentTime' | 'state' | 'destination' | 'createOscillator' | 'createGain' | 'createPeriodicWave' | 'resume' | 'close'>;
 
 interface ActiveTone { oscillator: OscillatorNode; gain: GainNode; onEnd?: () => void }
+interface ToneSettings { durationMs: number; attackMs: number; releaseMs: number; peakGain: number; settleMs: number }
 
 /**
  * Synthesizes a short, quiet reference pitch with the Web Audio API.
@@ -16,7 +17,7 @@ interface ActiveTone { oscillator: OscillatorNode; gain: GainNode; onEnd?: () =>
 export class ReferenceTonePlayer {
   private context: ToneContext | null = null;
   private active: ActiveTone | null = null;
-  constructor(private createContext: () => ToneContext = () => new AudioContext(), private settings = REFERENCE_TONE) {}
+  constructor(private createContext: () => ToneContext = () => new AudioContext(), private settings: ToneSettings = REFERENCE_TONE) {}
 
   get playing() { return this.active !== null; }
 

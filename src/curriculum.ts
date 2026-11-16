@@ -11,6 +11,17 @@ export const STRING_OPEN_MIDI: Record<ViolinString, number> = { G: 55, D: 62, A:
 
 export interface ExerciseNote { pitch: WrittenPitch; duration: Duration; fingering?: Fingering }
 export interface TimeSignature { beats: number; beatValue: 4 }
+export interface PatternGroup {
+  /** Flat note indices, inclusive start and exclusive end; may cross barlines/pages. */
+  start: number;
+  end: number;
+  title: string;
+  cue: string;
+  string: 'D' | 'A';
+  closePair: '1–2' | '2–3';
+  /** Notes sounded by Hear pattern, in staff order. */
+  demo: number[];
+}
 
 export interface Exercise {
   id: string;
@@ -28,6 +39,10 @@ export interface Exercise {
   fingeringByDefault: boolean;
   /** Exercise 01 keeps its single-string focus practice. */
   stringFocus?: boolean;
+  /** Optional teaching overlay. It never changes written notes or evaluation. */
+  patterns?: PatternGroup[];
+  patternChallenge?: boolean;
+  patternHintsByDefault?: boolean;
 }
 
 // Token format: "F#4:h@D2^" = F♯4, half note, D string, 2nd finger, high.
@@ -87,11 +102,49 @@ export const EXERCISES: Exercise[] = [
     fingeringByDefault: true,
   },
   {
+    id: 'pattern-move-one-finger', number: '05A', title: 'Move One Finger', difficulty: 2, keySignature: 'C', tempo: 72, ...COMMON,
+    description: 'Compare high and low second finger on the D string.',
+    objective: 'Keep E and G in place while F♯ changes to F natural. Hear each group, then play up and back.',
+    measures: bars('E4:h@D1 F#4:h@D2^', 'G4:w@D3', 'F#4:h@D2^ E4:h@D1', 'E4:h@D1 Fn4:h@D2', 'G4:w@D3', 'Fn4:h@D2 E4:h@D1'),
+    patterns: [
+      { start: 0, end: 5, title: 'High second finger', cue: 'Fingers 2 and 3 close: F♯ to G is a half step.', string: 'D', closePair: '2–3', demo: [0, 1, 2] },
+      { start: 5, end: 10, title: 'Low second finger', cue: 'Fingers 1 and 2 close: E to F is a half step.', string: 'D', closePair: '1–2', demo: [5, 6, 7] },
+    ],
+    instructions: ['The second finger moves; E and G stay the same.', 'A half step is the smaller gap. A whole step is twice that pitch distance.'],
+    patternHintsByDefault: true, fingeringByDefault: true,
+  },
+  {
+    id: 'pattern-move-shape', number: '05B', title: 'Move the Shape', difficulty: 2, keySignature: 'C', tempo: 72, ...COMMON,
+    description: 'Carry open–1–high 2–3 from D to A.',
+    objective: 'Read the same finger spacing on two strings: fingers 2 and 3 close.',
+    measures: bars('D4:h@D0 E4:h@D1', 'F#4:h@D2^ G4:h@D3', 'A4:h@A0 B4:h@A1', 'C#5:h@A2^ D5:h@A3'),
+    patterns: [
+      { start: 0, end: 4, title: 'D string shape', cue: 'Open–1–high 2–3. Fingers 2 and 3 close.', string: 'D', closePair: '2–3', demo: [0, 1, 2, 3] },
+      { start: 4, end: 8, title: 'A string shape', cue: 'The same spacing moves to A: open–1–high 2–3.', string: 'A', closePair: '2–3', demo: [4, 5, 6, 7] },
+    ],
+    instructions: ['The second group begins on the open A string.', 'Try the D Major Scale next to spot both groups again.'],
+    patternHintsByDefault: true, fingeringByDefault: true,
+  },
+  {
+    id: 'pattern-spot-phrase', number: '05C', title: 'Spot It Before You Play', difficulty: 3, keySignature: 'D', tempo: 72, ...COMMON,
+    description: 'Find the close pair in a short Morning Steps excerpt.',
+    objective: 'Look ahead at the staff. Which two notes form the half step?',
+    // Original tune measures 2–4; the E–F♯–G phrase crosses measures 3–4 and a narrow page turn.
+    measures: bars('F#4:h@D2^ D4:h@D0', 'E4:h@D1 F#4:h@D2^', 'G4:w@D3'),
+    patterns: [{ start: 2, end: 5, title: 'Morning Steps, measures 3–4', cue: 'F♯ and G are the close pair: fingers 2 and 3.', string: 'D', closePair: '2–3', demo: [2, 3, 4] }],
+    patternChallenge: true, patternHintsByDefault: false, fingeringByDefault: false,
+  },
+  {
     id: 'd-major-scale', number: '06', title: 'D Major Scale', difficulty: 3, keySignature: 'D', tempo: 80, ...COMMON,
     description: 'One octave up and down from D4, in half notes.',
     objective: 'Read the D major key signature: every F and C is sharp.',
     measures: bars('D4:h@D0 E4:h@D1', 'F#4:h@D2^ G4:h@D3', 'A4:h@A0 B4:h@A1', 'C#5:h@A2^ D5:h@A3', 'C#5:h@A2^ B4:h@A1', 'A4:h@A0 G4:h@D3', 'F#4:h@D2^ E4:h@D1', 'D4:w@D0'),
     instructions: ['The two sharps at the start of each line apply to every F and C.'],
+    patterns: [
+      { start: 0, end: 4, title: 'D string group', cue: 'D–E–F♯–G: fingers 2 and 3 close.', string: 'D', closePair: '2–3', demo: [0, 1, 2, 3] },
+      { start: 4, end: 8, title: 'A string group', cue: 'A–B–C♯–D: the same finger spacing on A.', string: 'A', closePair: '2–3', demo: [4, 5, 6, 7] },
+    ],
+    patternHintsByDefault: false,
     fingeringByDefault: false,
   },
   {
@@ -156,6 +209,11 @@ export function validateExercise(exercise: Exercise): string[] {
       }
     });
   });
+  const count = exercise.measures.flat().length;
+  exercise.patterns?.forEach(group => {
+    if (group.start < 0 || group.end > count || group.start >= group.end) fail('invalid pattern note range');
+    if (!group.demo.length || group.demo.some(index => index < group.start || index >= group.end)) fail('pattern demo note outside its group');
+  });
   return problems;
 }
 
@@ -171,7 +229,9 @@ export function practiceNotes(exercise: Exercise, a4 = 440): PracticeNote[] {
       beats: DURATION_BEATS[note.duration],
       duration: note.duration,
       measure: m,
-      accidental: accidentals[i],
+      // An explicit natural token also prints a courtesy ♮ when the barline
+      // already canceled a sharp; useful for the high/low finger comparison.
+      accidental: accidentals[i] ?? (note.pitch.accidental === 'n' ? 'n' : null),
       ...(note.fingering ? { fingering: note.fingering } : {}),
     }));
   });

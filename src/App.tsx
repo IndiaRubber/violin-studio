@@ -33,7 +33,7 @@ function Completion({ summary, onAgain, onNext, onHome }: { summary: PracticeSum
       {summary.mode === 'sustain' && <><dt>Attempts</dt><dd>{attempts}</dd></>}
     </dl>
     <p className="summary-note">This summary reflects pitch only. It does not judge bowing, posture, finger placement, or tone.</p>
-    <div className="completion-actions"><button className="primary" onClick={onAgain}>Practice again</button>{onNext && <button className="secondary" onClick={onNext}>Next exercise</button>}<button className="secondary" onClick={onHome}>Back to exercises</button></div>
+    <div className="completion-actions"><button className="primary" onClick={onAgain}>{summary.exerciseId === 'pattern-spot-phrase' ? 'Repeat with cue hidden' : 'Practice again'}</button>{onNext && <button className="secondary" onClick={onNext}>Next exercise</button>}<button className="secondary" onClick={onHome}>Back to exercises</button></div>
   </section>;
 }
 
@@ -61,10 +61,10 @@ export function App() {
         <p>Play a real violin and follow the notes on the staff. Work through the exercises in order, or pick any one.</p>
         <button className="exercise-card" onClick={() => setScreen('tuner')}><span className="card-icon">♮</span><span><strong>Instrument Tuner</strong><small>Violin strings or chromatic · No scoring</small></span><span aria-hidden="true">→</span></button>
         <h2 className="library-heading">Exercises</h2>
-        <div className="library" role="list">{EXERCISES.map(e => <div role="listitem" key={e.id}><ExerciseCard exercise={e} onOpen={() => openExercise(e.id)} /></div>)}</div>
+        <div className="library" role="list">{EXERCISES.map((e, index) => <div role="listitem" key={e.id}>{index === 5 && <h3 className="library-section">Finger Patterns</h3>}{index === 8 && <h3 className="library-section">Scales &amp; tunes</h3>}<ExerciseCard exercise={e} onOpen={() => openExercise(e.id)} /></div>)}</div>
       </section>}
       {screen === 'tuner' && <Tuner onBack={goHome} a4={a4} onReferenceChange={setA4} />}
-      {screen === 'exercise' && <Practice key={visit} exercise={exercise} a4={a4} initialFocus={summary?.exerciseId === exercise.id ? summary.focus : null} onBack={goHome} onComplete={result => { setSummary(result); setScreen('complete'); }} />}
+      {screen === 'exercise' && <Practice key={visit} exercise={exercise} a4={a4} initialFocus={summary?.exerciseId === exercise.id ? summary.focus : null} onBack={goHome} onOpenExercise={id => openExercise(id)} onComplete={result => { setSummary(result); setScreen('complete'); }} />}
       {screen === 'complete' && summary && <Completion summary={summary} onAgain={() => openExercise(exerciseId, true)} onNext={next ? () => openExercise(next.id) : null} onHome={goHome} />}
     </main><PwaStatus /><footer>Local practice · No account or upload</footer>
   </div>;

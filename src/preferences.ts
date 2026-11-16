@@ -11,9 +11,11 @@ export interface PracticePreferences {
   tempos: Record<string, number>;
   /** Fingering-hint choice per exercise id; absent means the exercise default. */
   fingering: Record<string, boolean>;
+  /** Finger-pattern overlay choice per exercise; absent keeps that exercise's default. */
+  patterns: Record<string, boolean>;
 }
 const KEY = 'violin-studio-practice';
-export const DEFAULT_PREFERENCES: PracticePreferences = { mode: 'sustain', names: 'always', tempos: {}, fingering: {} };
+export const DEFAULT_PREFERENCES: PracticePreferences = { mode: 'sustain', names: 'always', tempos: {}, fingering: {}, patterns: {} };
 
 function record<T>(value: unknown, valid: (v: unknown) => v is T): Record<string, T> {
   if (!value || typeof value !== 'object') return {};
@@ -29,7 +31,7 @@ export function loadPreferences(): PracticePreferences {
     const tempos = Object.fromEntries(Object.entries(record(stored.tempos, (v): v is number => typeof v === 'number' && Number.isFinite(v))).map(([id, bpm]) => [id, clampTempo(bpm)]));
     // Milestone 2A stored a single tempo for the open-strings exercise.
     if (typeof stored.tempo === 'number' && tempos['open-strings'] === undefined) tempos['open-strings'] = clampTempo(stored.tempo);
-    return { mode: stored.mode === 'quick' ? 'quick' : 'sustain', names, tempos, fingering: record(stored.fingering, (v): v is boolean => typeof v === 'boolean') };
+    return { mode: stored.mode === 'quick' ? 'quick' : 'sustain', names, tempos, fingering: record(stored.fingering, (v): v is boolean => typeof v === 'boolean'), patterns: record(stored.patterns, (v): v is boolean => typeof v === 'boolean') };
   } catch { return DEFAULT_PREFERENCES; }
 }
 export function savePreferences(value: PracticePreferences): void {

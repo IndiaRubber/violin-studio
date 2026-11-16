@@ -39,12 +39,12 @@ describe('practice preferences', () => {
   });
   it('migrates Milestone 2A settings', () => {
     localStorage.setItem('violin-studio-practice', JSON.stringify({ mode: 'quick', tempo: 72, showHints: false }));
-    expect(loadPreferences()).toEqual({ mode: 'quick', names: 'off', tempos: { 'open-strings': 72 }, fingering: {} });
+    expect(loadPreferences()).toEqual({ mode: 'quick', names: 'off', tempos: { 'open-strings': 72 }, fingering: {}, patterns: {} });
   });
   it('round-trips per-exercise tempo and fingering choices, clamping bad values', () => {
-    savePreferences({ mode: 'sustain', names: 'after', tempos: { 'd-major-scale': 90 }, fingering: { 'open-strings': false } });
-    expect(loadPreferences()).toEqual({ mode: 'sustain', names: 'after', tempos: { 'd-major-scale': 90 }, fingering: { 'open-strings': false } });
+    savePreferences({ mode: 'sustain', names: 'after', tempos: { 'd-major-scale': 90 }, fingering: { 'open-strings': false }, patterns: { 'd-major-scale': true } });
+    expect(loadPreferences()).toEqual({ mode: 'sustain', names: 'after', tempos: { 'd-major-scale': 90 }, fingering: { 'open-strings': false }, patterns: { 'd-major-scale': true } });
     localStorage.setItem('violin-studio-practice', JSON.stringify({ tempos: { a: 500, b: 'x' }, fingering: { c: 'yes' }, names: 'loud' }));
-    expect(loadPreferences()).toEqual({ mode: 'sustain', names: 'always', tempos: { a: 120 }, fingering: {} });
+    expect(loadPreferences()).toEqual({ mode: 'sustain', names: 'always', tempos: { a: 120 }, fingering: {}, patterns: {} });
   });
 });
