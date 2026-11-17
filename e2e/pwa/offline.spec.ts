@@ -21,6 +21,9 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await page.goto('/tuner'); // navigation fallback loads the shell on direct refresh
   await expect(page.getByRole('heading', { name: 'Hear the note. Find your sound.' })).toBeVisible();
   await page.getByRole('button', { name: /Instrument Tuner/ }).click();
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await expect(page.locator('.tuner-status')).toHaveText('Playing A4 reference');
+  await expect(page.getByRole('button', { name: 'Hear note' })).toBeEnabled();
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect(page.locator('.tuner-note')).toHaveText('A4', { timeout: 5000 });
   await page.getByRole('button', { name: 'Home' }).click();

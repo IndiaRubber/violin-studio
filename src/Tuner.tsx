@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { AudioSession, type AudioDiagnostics } from './audio';
+import { REFERENCE_TONE } from './config';
 import type { PitchReading } from './pitch';
 import { TUNER_PITCH_SETTINGS } from './pitch';
 import { validReference } from './reference';
 import { centsToX, PitchTrail, TRAIL_RANGE_CENTS } from './trail';
-import { formatCents, MAX_A4, MIN_A4, referenceFrequency, TUNER_IN_TUNE_CENTS, TunerPresentation, tunerReadout, VIOLIN_STRINGS, type TunerMode, type TunerReadout } from './tuner-logic';
+import { formatCents, MAX_A4, MIN_A4, nearestNote, referenceFrequency, TUNER_IN_TUNE_CENTS, TunerPresentation, tunerReadout, VIOLIN_STRINGS, type TunerMode, type TunerReadout } from './tuner-logic';
+import { ReferenceTonePlayer } from './tone';
 import { ViolinScroll } from './ViolinScroll';
 
 const UI_INTERVAL_MS = 100;
 const EMPTY: TunerReadout = { targetKey: null, peg: null, hearing: null, cents: null, direction: null, mismatch: null };
+type ToneState = { phase: 'playing'; name: string } | { phase: 'settling' } | null;
 /** Trail colour by distance from the target (text always carries the same meaning). */
 const trailColor = (cents: number) => Math.abs(cents) <= TUNER_IN_TUNE_CENTS ? '#5fd39a' : Math.abs(cents) <= 25 ? '#e8c35c' : '#f08a5d';
 const prefersReducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -26,6 +29,12 @@ export function Tuner({ onBack, a4, onReferenceChange }: { onBack: () => void; a
   const [displayHz, setDisplayHz] = useState<number | null>(null);
   const [readout, setReadout] = useState<TunerReadout>(EMPTY);
   const [details, setDetails] = useState<AudioDiagnostics | null>(null);
+  const [tone, setTone] = useState<ToneState>(null);
+  const [toneError, setToneError] = useState('');
+  const player = useRef<ReferenceTonePlayer | null>(null);
+  const toneGeneration = useRef(0);
+  const toneTimer = useRef<number | undefined>(undefined);
+  const suppressReadings = useRef(false);
   const session = useRef<AudioSession | null>(null);
   const filter = useRef(new TunerPresentation());
   const trail = useRef(new PitchTrail());
@@ -39,9 +48,48 @@ export function Tuner({ onBack, a4, onReferenceChange }: { onBack: () => void; a
   const canvas = useRef<HTMLCanvasElement>(null);
   const marker = useRef<HTMLDivElement>(null);
 
+  const settleTone = (token: number) => {
+    if (token !== toneGeneration.current) return;
+    filter.current.reset();
+    setTone({ phase: 'settling' });
+    window.clearTimeout(toneTimer.current);
+    toneTimer.current = window.setTimeout(() => {
+      if (token !== toneGeneration.current) return;
+      suppressReadings.current = false;
+      toneTimer.current = undefined;
+      setTone(null);
+    }, REFERENCE_TONE.settleMs);
+  };
+  const cancelTone = () => {
+    if (!suppressReadings.current) return;
+    const token = ++toneGeneration.current;
+    // Disposal also cancels playback that is still waiting for AudioContext.resume().
+    player.current?.dispose(); player.current = null;
+    settleTone(token);
+  };
+  const hearTone = (name: string, hz: number) => {
+    if (suppressReadings.current) return;
+    const token = ++toneGeneration.current;
+    suppressReadings.current = true;
+    setToneError('');
+    setTone({ phase: 'playing', name });
+    filter.current.reset();
+    trail.current.push(performance.now(), null);
+    published.current = { at: -Infinity, key: '' };
+    setReading(null); setDisplayHz(null);
+    setReadout(r => ({ ...EMPTY, peg: r.peg, targetKey: r.targetKey }));
+    player.current ??= new ReferenceTonePlayer();
+    void player.current.play(hz, () => settleTone(token)).catch(() => {
+      if (token !== toneGeneration.current) return;
+      cancelTone();
+      setToneError('Could not play the reference note. Check your audio output and try again.');
+    });
+  };
+
   /** Any change of what is being tuned starts a fresh trail and clears the live readout. */
-  const resetTarget = () => { trail.current.clear(); trail.current.setTarget(null); autoPeg.current = null; filter.current.reset(); setReadout(EMPTY); setDisplayHz(null); };
+  const resetTarget = () => { cancelTone(); trail.current.clear(); trail.current.setTarget(null); autoPeg.current = null; filter.current.reset(); setReadout(EMPTY); setDisplayHz(null); };
   const stop = () => {
+    cancelTone();
     generation.current++;
     session.current?.stop(); session.current = null;
     filter.current.reset();
@@ -49,7 +97,12 @@ export function Tuner({ onBack, a4, onReferenceChange }: { onBack: () => void; a
     setListening(false); setStarting(false); setReading(null); setDisplayHz(null); setDetails(null);
     setReadout(r => ({ ...EMPTY, peg: r.peg, targetKey: r.targetKey }));
   };
-  useEffect(() => () => { generation.current++; session.current?.stop(); }, []);
+  useEffect(() => () => {
+    generation.current++; session.current?.stop();
+    toneGeneration.current++;
+    window.clearTimeout(toneTimer.current);
+    player.current?.dispose();
+  }, []);
 
   // Draw the trail by elapsed time (requestAnimationFrame), independent of reading arrival.
   useEffect(() => {
@@ -109,7 +162,7 @@ export function Tuner({ onBack, a4, onReferenceChange }: { onBack: () => void; a
     setError(''); setStarting(true);
     const token = ++generation.current;
     const audio = new AudioSession((next, time) => {
-      if (token !== generation.current) return;
+      if (token !== generation.current || suppressReadings.current) return;
       const hz = filter.current.next(next);
       const { mode: m, auto: a, stringId: s, a4: ref } = settings.current;
       const result = tunerReadout(hz, { mode: m, auto: a, selectedId: s, a4: ref, previousAuto: autoPeg.current });
@@ -155,6 +208,9 @@ export function Tuner({ onBack, a4, onReferenceChange }: { onBack: () => void; a
   const violin = mode === 'violin';
   const activePeg = violin ? (auto ? readout.peg : stringId) : null;
   const target = activePeg ? VIOLIN_STRINGS.find(s => s.id === activePeg)! : null;
+  const chromaticTarget = !violin && displayHz !== null ? nearestNote(displayHz, a4) : null;
+  const reference = target ? { name: target.name, hz: referenceFrequency(target.midi, a4) }
+    : chromaticTarget && { name: chromaticTarget.name, hz: chromaticTarget.targetHz };
   const quiet = !listening ? null : reading?.reason === 'quiet' ? (violin ? 'Play a string' : 'Play a note') : reading?.reason === 'unsupported' ? 'Pitch outside the supported range' : reading?.reason === 'uncertain' || reading?.reason === 'outlier' ? 'Pitch uncertain — play a clearer note' : null;
   const status = !listening ? (violin ? (auto ? 'Start, then play any open string' : `Start, then play the ${target!.name.replace(/\d/, '')} string`) : 'Start, then play a note')
     : readout.mismatch ?? readout.direction ?? quiet ?? 'Listening…';
@@ -172,7 +228,13 @@ export function Tuner({ onBack, a4, onReferenceChange }: { onBack: () => void; a
         <div><strong className="tuner-note" aria-label={readout.hearing ? `Hearing ${readout.hearing}` : 'No note'}>{readout.hearing ?? '—'}</strong><span className="tuner-frequency">{displayHz === null ? 'No reliable pitch' : `${displayHz.toFixed(1)} Hz`}</span></div>
         <div className="tuner-readout-right"><span className="tuner-cents">{readout.cents === null ? '—' : formatCents(readout.cents)}</span><span className="tuner-target">{targetText}</span></div>
       </div>
-      <p className={`tuner-status is-${statusKind}`} role="status">{status}</p>
+      <div className="tuner-feedback">
+        <p className={`tuner-status is-${tone ? 'idle' : statusKind}`} role="status">{tone?.phase === 'playing' ? `Playing ${tone.name} reference` : tone?.phase === 'settling' ? (listening ? 'Listening resumes shortly' : 'Reference ending') : status}</p>
+        <button type="button" className="tuner-tone" disabled={tone?.phase !== 'playing' && (!reference || tone?.phase === 'settling')} onClick={() => {
+          if (tone?.phase === 'playing') cancelTone();
+          else if (reference) hearTone(reference.name, reference.hz);
+        }}>{tone?.phase === 'playing' ? 'Stop tone' : 'Hear note'}</button>
+      </div>
       <div className="tuner-graph" ref={graph} role="img" data-live="false" data-points="0"
         aria-label={readout.cents === null ? 'Pitch trail: no current reading' : `Pitch trail: ${readout.direction === 'In tune' ? 'in tune' : `${Math.abs(Math.round(readout.cents))} cents ${readout.cents < 0 ? 'flat' : 'sharp'}`}`}>
         <span className="graph-band" style={{ left: `${50 - (TUNER_IN_TUNE_CENTS / TRAIL_RANGE_CENTS) * 50}%`, width: `${(TUNER_IN_TUNE_CENTS / TRAIL_RANGE_CENTS) * 100}%` }} />
@@ -186,8 +248,9 @@ export function Tuner({ onBack, a4, onReferenceChange }: { onBack: () => void; a
       <button className="primary tuner-start" onClick={listening || starting ? stop : start}>{starting ? 'Connecting…' : listening ? 'Stop Listening' : 'Start Listening'}</button>
     </div>
     {error && <p className="error" role="alert">{error}</p>}
+    {toneError && <p className="error" role="alert">{toneError}</p>}
     <div className="tuner-controls"><label className="reference-control">Concert pitch A4 <input aria-label="Concert pitch A4" aria-invalid={!!referenceError} type="number" min={MIN_A4} max={MAX_A4} step="1" value={a4Text} onChange={event => { const text = event.target.value; setA4Text(text); const value = Number(text); if (text && validReference(value)) { onReferenceChange(value); setReferenceError(''); resetTarget(); } else setReferenceError(`Enter a whole number from ${MIN_A4} to ${MAX_A4} Hz.`); }} /> Hz</label></div>{referenceError && <p className="error" role="alert">{referenceError}</p>}
-    <details className="help tuner-help"><summary>How to read the trail</summary><p>The vertical line is the target pitch. Flat readings sit to the left, sharp to the right; the green band is “in tune” (±{TUNER_IN_TUNE_CENTS} cents). The newest reading is at the top and older ones drift down and fade over about three seconds, so you can see how the pitch moved. Gaps mean silence or an unclear sound. The tuner hears pitch only; it cannot tell which string you bowed.</p></details>
+    <details className="help tuner-help"><summary>How to read the trail</summary><p>The vertical line is the target pitch. Flat readings sit to the left, sharp to the right; the green band is “in tune” (±{TUNER_IN_TUNE_CENTS} cents). The newest reading is at the top and older ones drift down and fade over about three seconds, so you can see how the pitch moved. Gaps mean silence, an unclear sound, or a reference tone. The tuner hears pitch only; it cannot tell which string you bowed.</p><p><strong>Hear note</strong> plays your target using the concert pitch below. Select a peg to hear an open string without the microphone, or play a note first in Auto or Chromatic. Tuning feedback pauses during playback and returns automatically.</p></details>
     <details className="diagnostics"><summary>Developer diagnostics</summary><dl><dt>Raw frequency</dt><dd>{reading?.rawHz?.toFixed(1) ?? '—'} Hz</dd><dt>Smoothed detector frequency</dt><dd>{reading?.smoothHz?.toFixed(1) ?? '—'} Hz</dd><dt>Display frequency</dt><dd>{displayHz?.toFixed(1) ?? '—'} Hz</dd><dt>Clarity / RMS</dt><dd>{reading ? `${reading.clarity.toFixed(3)} / ${reading.rms.toFixed(4)}` : '—'}</dd><dt>Detection state</dt><dd>{reading?.reason ?? 'off'}</dd><dt>Trail target</dt><dd>{readout.targetKey ?? '—'}</dd><dt>Sample rate</dt><dd>{details?.sampleRate ?? '—'} Hz</dd><dt>AudioContext</dt><dd>{details?.contextState ?? 'unavailable'}</dd><dt>Requested processing</dt><dd>Echo: off · Noise: off · Gain: off</dd><dt>Applied track settings</dt><dd>{details?.applied ? JSON.stringify(details.applied) : 'Unavailable'}</dd></dl></details>
   </section>;
 }

@@ -32,6 +32,56 @@ async function openTuner(page: Page) {
   await expect(graph(page)).toBeVisible();
 }
 
+test('Hear note plays the selected peg at the configured concert pitch without opening the mic', async ({ page }) => {
+  await page.addInitScript(() => {
+    const referenceFrequencies: number[] = [];
+    Object.assign(window, { referenceFrequencies });
+    const setValue = AudioParam.prototype.setValueAtTime;
+    const create = AudioContext.prototype.createOscillator;
+    AudioContext.prototype.createOscillator = function () {
+      const oscillator = create.call(this);
+      oscillator.frequency.setValueAtTime = function (hz, time) {
+        referenceFrequencies.push(hz);
+        return setValue.call(this, hz, time);
+      };
+      return oscillator;
+    };
+  });
+  await page.setViewportSize({ width: 360, height: 740 });
+  await openTuner(page);
+  await page.getByRole('spinbutton', { name: 'Concert pitch A4' }).fill('442');
+  await page.getByRole('button', { name: /^D string/ }).click();
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Playing D4 reference' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { referenceFrequencies: number[] }).referenceFrequencies[0])).toBeCloseTo(442 * 2 ** (-7 / 12), 5);
+  await expect(page.getByRole('button', { name: 'Start Listening' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Stop tone' }).click();
+  await expect(page.getByRole('button', { name: 'Hear note' })).toBeEnabled();
+});
+
+test('reference playback puts a gap in live feedback and listening resumes automatically', async ({ page }) => {
+  await syntheticMic(page, A4, 0);
+  await openTuner(page);
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  await expect(page.locator('.tuner-status')).toHaveText('Play a string');
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  // Simulate the phone speaker leaking the reference note into the microphone.
+  await setMic(page, A4);
+  await expect(page.locator('.tuner-status')).toHaveText('Playing A4 reference');
+  await expect.poll(async () => (await data(page)).live).toBe('false');
+  await expect(page.locator('.tuner-note')).toHaveText('—');
+  await expect(page.locator('.tuner-status')).toHaveText('Listening resumes shortly', { timeout: 4000 });
+  expect((await data(page)).points).toBe(0);
+  await expect(page.locator('.tuner-note')).toHaveText('—');
+  await setMic(page, A4, 0);
+  await expect(page.locator('.tuner-status')).toHaveText('Play a string');
+  await setMic(page, A4);
+  await expect(page.locator('.tuner-status')).toHaveText('In tune');
+  await expect.poll(async () => (await data(page)).live).toBe('true');
+  await page.getByRole('button', { name: 'Stop Listening' }).click();
+});
+
 test('trail follows a correction toward the centre, then the live marker clears and history fades', async ({ page }) => {
   await syntheticMic(page, cents(A4, 30));
   await openTuner(page);
@@ -123,9 +173,14 @@ test('Auto highlights the identified open string; tapping a peg returns to Manua
   await expect(autoSwitch).toHaveAttribute('aria-checked', 'false');
   await autoSwitch.click();
   await expect(autoSwitch).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('button', { name: 'Hear note' })).toBeDisabled();
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect(page.getByRole('button', { name: /^D string/ })).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
   await expect(page.locator('.tuner-status')).toHaveText('Tune down');
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await expect(page.locator('.tuner-status')).toHaveText('Playing D4 reference');
+  await expect(page.getByRole('button', { name: /^D string/ })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Stop tone' }).click();
   await setMic(page, cents(A4, -15));
   await expect(page.getByRole('button', { name: /^A string/ })).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
   await expect(page.locator('.tuner-status')).toHaveText('Tune up');
@@ -141,13 +196,17 @@ test('Chromatic keeps the trail and readouts without selecting a peg', async ({ 
   await openTuner(page);
   await page.getByRole('button', { name: 'Chromatic' }).click();
   await expect(page.getByRole('switch', { name: 'Auto' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Hear note' })).toBeDisabled();
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect(page.locator('.tuner-note')).toHaveText('C5', { timeout: 5000 });
   await expect(page.locator('.tuner-status')).toHaveText('Tune down');
   await expect(page.locator('.tuner-target')).toHaveText('Chromatic · nearest note');
   await expect.poll(async () => (await data(page)).live).toBe('true');
   for (const peg of await page.locator('.peg-button').all()) await expect(peg).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await expect(page.locator('.tuner-status')).toHaveText('Playing C5 reference');
   await page.getByRole('button', { name: 'Stop Listening' }).click();
+  await expect(page.getByRole('button', { name: 'Stop tone' })).toHaveCount(0);
 });
 
 test('keyboard: mode, Auto switch, and pegs are operable without a pointer', async ({ page }) => {
