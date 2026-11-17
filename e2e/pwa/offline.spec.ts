@@ -24,6 +24,10 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await page.getByRole('button', { name: 'Hear note' }).click();
   await expect(page.locator('.tuner-status')).toHaveText('Playing A4 reference');
   await expect(page.getByRole('button', { name: 'Hear note' })).toBeEnabled();
+  await page.getByRole('group', { name: 'Hear note sound' }).getByRole('button', { name: 'Violin' }).click();
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await expect(page.locator('.tuner-status')).toHaveText('Playing violin A4 reference');
+  await page.getByRole('button', { name: 'Stop tone' }).click();
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect(page.locator('.tuner-note')).toHaveText('A4', { timeout: 5000 });
   await page.getByRole('button', { name: 'Home' }).click();

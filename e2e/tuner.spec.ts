@@ -211,7 +211,7 @@ test('Chromatic keeps the trail and readouts without selecting a peg', async ({ 
 
 test('keyboard: mode, Auto switch, and pegs are operable without a pointer', async ({ page }) => {
   await openTuner(page);
-  await page.getByRole('button', { name: 'Violin' }).focus();
+  await page.getByRole('group', { name: 'Mode' }).getByRole('button', { name: 'Violin' }).focus();
   await page.keyboard.press('Tab'); // Chromatic
   await page.keyboard.press('Tab'); // Auto switch
   await expect(page.getByRole('switch', { name: 'Auto' })).toBeFocused();
@@ -273,4 +273,94 @@ test('desktop layout and microphone cleanup when leaving the tuner', async ({ pa
   await page.getByRole('button', { name: /Home/ }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { micStops: number }).micStops)).toBeGreaterThan(0);
   await expect(page.getByRole('heading', { name: 'Hear the note. Find your sound.' })).toBeVisible();
+});
+
+test('Violin sound maps all four pegs and corrects measured clips at A440 and A442', async ({ page }) => {
+  await page.addInitScript(() => {
+    const starts: number[] = [];
+    Object.assign(window, { sampleRates: starts });
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (...args) {
+      starts.push(this.playbackRate.value);
+      return start.apply(this, args);
+    };
+  });
+  await openTuner(page);
+  const sound = page.getByRole('group', { name: 'Hear note sound' });
+  await expect(sound.getByRole('button', { name: 'Tone' })).toHaveAttribute('aria-pressed', 'true');
+  await sound.getByRole('button', { name: 'Violin' }).click();
+  const measured = { G: 195.61, D: 291.51, A: 438.18, E: 659.11 };
+  const midi = { G: 55, D: 62, A: 69, E: 76 };
+  for (const a4 of [440, 442]) {
+    if (a4 === 442) await page.getByRole('spinbutton', { name: 'Concert pitch A4' }).fill('442');
+    for (const name of ['G', 'D', 'A', 'E'] as const) {
+      await page.getByRole('button', { name: new RegExp(`^${name} string`) }).click();
+      await page.getByRole('button', { name: 'Hear note' }).click();
+      await expect(page.locator('.tuner-status')).toHaveText(`Playing violin ${name}${midi[name] === 55 ? 3 : midi[name] === 76 ? 5 : 4} reference`);
+      const rates = await page.evaluate(() => (window as unknown as { sampleRates: number[] }).sampleRates);
+      expect(rates.at(-1)).toBeCloseTo((a4 * 2 ** ((midi[name] - 69) / 12)) / measured[name], 3);
+      await page.getByRole('button', { name: 'Stop tone' }).click();
+    }
+  }
+  await page.reload();
+  await page.getByRole('button', { name: /Instrument Tuner/ }).click();
+  await expect(page.getByRole('group', { name: 'Hear note sound' }).getByRole('button', { name: 'Violin' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('group', { name: 'Mode' }).getByRole('button', { name: 'Chromatic' }).click();
+  await expect(page.getByRole('group', { name: 'Hear note sound' }).getByRole('button', { name: 'Violin' })).toBeDisabled();
+});
+
+test('Violin in Auto follows the identified open string, and target changes cancel playback', async ({ page }) => {
+  await syntheticMic(page, D4);
+  await openTuner(page);
+  await page.getByRole('group', { name: 'Hear note sound' }).getByRole('button', { name: 'Violin' }).click();
+  await page.getByRole('switch', { name: 'Auto' }).click();
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  await expect(page.getByRole('button', { name: /^D string/ })).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await expect(page.locator('.tuner-status')).toHaveText('Playing violin D4 reference');
+  await page.getByRole('button', { name: /^E string/ }).click();
+  await expect(page.getByRole('button', { name: 'Stop tone' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^E string/ })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Stop Listening' }).click();
+});
+
+test('sample loading suppresses leaked mic sound and a failed clip visibly falls back to Tone', async ({ page }) => {
+  await syntheticMic(page, A4, 0);
+  await page.route('**/samples/a4.wav', async route => { await new Promise(resolve => setTimeout(resolve, 350)); await route.fulfill({ status: 404, body: '' }); });
+  await openTuner(page);
+  await page.getByRole('group', { name: 'Hear note sound' }).getByRole('button', { name: 'Violin' }).click();
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await setMic(page, A4);
+  await expect(page.locator('.tuner-status')).toHaveText('Loading violin A4 reference');
+  await expect(page.locator('.tuner-note')).toHaveText('—');
+  await expect(page.locator('.tuner-status')).toHaveText('Playing Tone A4 reference', { timeout: 5000 });
+  await expect(page.getByText('Violin recording unavailable. Tone was used instead.')).toBeVisible();
+  expect((await data(page)).points).toBe(0);
+  await setMic(page, A4, 0);
+  await expect(page.locator('.tuner-status')).toHaveText('Listening resumes shortly', { timeout: 4000 });
+  expect((await data(page)).points).toBe(0);
+  await page.getByRole('button', { name: 'Stop Listening' }).click();
+});
+
+test('Stop tone during sample loading prevents delayed playback and fallback', async ({ page }) => {
+  await page.route('**/samples/a4.wav', async route => { await new Promise(resolve => setTimeout(resolve, 700)); await route.fulfill({ status: 200, path: 'public/samples/a4.wav' }).catch(() => {}); });
+  await openTuner(page);
+  await page.getByRole('group', { name: 'Hear note sound' }).getByRole('button', { name: 'Violin' }).click();
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await expect(page.locator('.tuner-status')).toHaveText('Loading violin A4 reference');
+  await page.getByRole('button', { name: 'Stop tone' }).click();
+  await page.waitForTimeout(900);
+  await expect(page.locator('.tuner-status')).not.toContainText(/Playing violin|Playing Tone/);
+  await expect(page.getByText('Violin recording unavailable. Tone was used instead.')).toHaveCount(0);
+});
+
+test('an undecodable violin clip falls back to the synthesized Tone', async ({ page }) => {
+  await page.route('**/samples/a4.wav', route => route.fulfill({ status: 200, contentType: 'audio/wav', body: 'invalid audio' }));
+  await openTuner(page);
+  await page.getByRole('group', { name: 'Hear note sound' }).getByRole('button', { name: 'Violin' }).click();
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await expect(page.locator('.tuner-status')).toHaveText('Playing Tone A4 reference', { timeout: 5000 });
+  await expect(page.getByText('Violin recording unavailable. Tone was used instead.')).toBeVisible();
+  await page.getByRole('button', { name: 'Stop tone' }).click();
 });

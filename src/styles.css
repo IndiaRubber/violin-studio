@@ -273,6 +273,11 @@ main{width:calc(100% - 26px)}
 .tuner-tone:hover:not(:disabled){background:#39434d}
 .tuner-tone:focus-visible{outline:2px solid #f3cf7a;outline-offset:2px}
 .tuner-tone:disabled{opacity:.6;cursor:default}
+.tuner-sound{display:flex;gap:3px;padding:3px;border:1px solid #737d87;border-radius:12px;background:#242b33}
+.tuner-sound button{min-width:60px;min-height:38px;border:0;border-radius:8px;background:transparent;color:#ece6dc;font:inherit;font-weight:700;cursor:pointer}
+.tuner-sound button[aria-pressed=true]{background:#e8d8b5;color:#20262c}
+.tuner-sound button:disabled{opacity:.45;cursor:default}
+.tuner-sound button:focus-visible{outline:2px solid #f3cf7a;outline-offset:2px}
 .tuner-graph{position:relative;height:190px;margin:0 2px;border-radius:12px;overflow:hidden}
 .tuner-graph canvas{position:absolute;inset:0;width:100%;height:100%}
 .graph-center{position:absolute;left:50%;top:0;bottom:0;border-left:2px solid rgba(255,255,255,.35)}
