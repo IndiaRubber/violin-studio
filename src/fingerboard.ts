@@ -1,5 +1,5 @@
 import { PRACTICE } from './config';
-import { frequencyOf, spell, vexKey, type WrittenPitch } from './notation';
+import { frequencyOf, midiOf, spell, vexKey, type WrittenPitch } from './notation';
 import type { PracticeNote, ViolinString } from './music';
 
 export type FingerRow = 'open' | 'one' | 'low2' | 'high2' | 'three' | 'four';
@@ -17,6 +17,11 @@ const columns: Record<ViolinString, WrittenPitch[]> = {
 };
 export const POSITIONS: Position[] = STRINGS.flatMap(string => ROWS.map((row, index) => ({ id: `${string}-${row}`, string, row, finger: ([0, 1, 2, 2, 3, 4] as const)[index], pitch: columns[string][index] })));
 export const position = (string: ViolinString, row: FingerRow): Position => POSITIONS.find(p => p.string === string && p.row === row)!;
+/** Ideal equal-tempered distance from the nut as a fraction of the open string's vibrating length. */
+export function distanceFromNut(p: Position): number {
+  const semitones = midiOf(p.pitch) - midiOf(position(p.string, 'open').pitch);
+  return 1 - 2 ** (-semitones / 12);
+}
 export const positionHz = (p: Position, a4 = 440) => frequencyOf(p.pitch, a4);
 export const supported = (p: Position, a4 = 440) => positionHz(p, a4) >= PRACTICE.minFrequency && positionHz(p, a4) <= PRACTICE.maxFrequency;
 export const fingerLabel = (p: Position) => p.row === 'open' ? 'open string' : p.row === 'low2' ? 'low finger 2' : p.row === 'high2' ? 'high finger 2' : `finger ${p.finger}`;

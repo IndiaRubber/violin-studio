@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { asPracticeNote, position, positionHz, POSITIONS, shuffled, staffSequence, supported, walk } from './fingerboard';
+import { asPracticeNote, distanceFromNut, position, positionHz, POSITIONS, ROWS, shuffled, staffSequence, STRINGS, supported, walk } from './fingerboard';
 import { frequencyToNote } from './music';
 import { frequencyOf } from './notation';
 import { PracticeSession } from './practice-session';
@@ -8,6 +8,18 @@ import type { PitchReading } from './pitch';
 const ok = (hz: number): PitchReading => ({ rawHz: hz, smoothHz: hz, clarity: .99, rms: .1, note: frequencyToNote(hz), reason: 'ok' });
 const quiet: PitchReading = { rawHz: null, smoothHz: null, clarity: 0, rms: 0, note: null, reason: 'quiet' };
 describe('fingerboard positions', () => {
+  it('maps stopped notes to proportional distances from each string’s nut', () => {
+    for (const string of STRINGS) {
+      const distances = ROWS.map(row => distanceFromNut(position(string, row)));
+      [0, 2, 3, 4, 5, 7].forEach((steps, index) => {
+        expect(distances[index]).toBeCloseTo(1 - 2 ** (-steps / 12), 10);
+      });
+      const [, one, low, high, three, four] = distances;
+      expect(high - one).toBeGreaterThan(2 * (three - high));
+      expect(three - low).toBeGreaterThan(1.8 * (low - one));
+      expect(four - three).toBeLessThan(high - one);
+    }
+  });
   it('keeps all 24 string/position identities and exact written spellings', () => {
     expect(POSITIONS).toHaveLength(24);
     expect(['G', 'D', 'A', 'E'].map(s => POSITIONS.filter(p => p.string === s).map(p => asPracticeNote(p).name))).toEqual([
