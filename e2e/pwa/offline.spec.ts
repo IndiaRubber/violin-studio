@@ -50,7 +50,7 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await page.getByRole('button', { name: 'Hear note' }).click();
   await expect(page.getByText(/Microphone paused/)).toBeVisible();
   await page.getByRole('button', { name: '← Exercises' }).click();
-  await expect(page.locator('.library .exercise-card')).toHaveCount(18);
+  await expect(page.locator('.library .exercise-card')).toHaveCount(21);
   for (const title of ['Move One Finger', 'Move the Shape', 'Spot It Before You Play', 'Low Second Finger on A', 'Add the Fourth Finger', 'Change Shape at the Crossing', 'Read the Shape Out of Order', 'Spot the Change in a Tune']) {
     await page.getByRole('button', { name: new RegExp(title) }).click();
     await expect(page.locator('.staff svg')).toBeVisible();
@@ -66,6 +66,12 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await page.getByRole('button', { name: '← Exercises' }).click();
   await page.getByRole('button', { name: /Two-String Tune/ }).click();
   await expect(page.locator('.staff svg')).toBeVisible();
+  await page.getByRole('button', { name: '← Exercises' }).click();
+  await page.getByRole('button', { name: /Crossing Echoes/ }).click();
+  await expect(page.getByRole('heading', { name: 'Crossing Echoes' })).toBeVisible();
+  await expect(page.locator('.score-hold-beat')).toHaveCount(2);
+  await expect(page.locator('[data-position="D-high2"]')).toHaveClass(/active/);
+  await expect(page.getByRole('button', { name: 'Restart exercise' })).toBeEnabled();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Hear the note. Find your sound.' })).toBeVisible();
 });

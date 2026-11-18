@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PRACTICE } from './config';
 import { describeFingering, EXERCISES, findExercise, fingeringLabel, focusedExercise, parseNote, practiceNotes, validateExercise, type Exercise } from './curriculum';
 import { OPEN_STRINGS } from './music';
+import { positionForNote } from './fingerboard';
 import { MAX_A4, MIN_A4 } from './reference';
 
 const names = (id: string) => practiceNotes(findExercise(id)!).map(note => note.name);
@@ -15,6 +16,7 @@ describe('exercise library', () => {
       '05D Low Second Finger on A', '05E Add the Fourth Finger', '05F Change Shape at the Crossing',
       '05G Read the Shape Out of Order', '05H Spot the Change in a Tune',
       '06 D Major Scale', '07 G Major Scale', '08A Morning Steps', '08B A-String Song', '08C Two-String Tune',
+      '09A Close Pair on D', '09B Low Second Turn', '09C Crossing Echoes',
     ]);
     expect(new Set(EXERCISES.map(e => e.id)).size).toBe(EXERCISES.length);
   });
@@ -99,6 +101,20 @@ describe('exercise library', () => {
     }
   });
 
+  it('09A–C map every written pitch to its exact suggested string and finger', () => {
+    const tunes = EXERCISES.filter(e => e.fingerboard);
+    expect(tunes.map(e => e.number)).toEqual(['09A', '09B', '09C']);
+    for (const a4 of [MIN_A4, 440, MAX_A4]) for (const tune of tunes) {
+      const notes = practiceNotes(tune, a4);
+      expect(notes.map(note => positionForNote(note, a4)?.string)).toEqual(notes.map(note => note.fingering?.string));
+    }
+    const crossing = practiceNotes(tunes[2]).map(note => positionForNote(note, 440)?.id);
+    expect(crossing.slice(0, 5)).toEqual(['D-high2', 'D-three', 'A-open', 'A-one', 'A-low2']);
+    const alternate = practiceNotes(findExercise('pattern-fourth-finger')!).filter(n => n.name === 'A4');
+    expect(alternate.map(n => positionForNote(n, 440)?.id)).toContain('D-four');
+    expect(alternate.map(n => positionForNote(n, 440)?.id)).toContain('A-open');
+  });
+
   it('flattens measures into ordered notes with measure numbers and beats', () => {
     const notes = practiceNotes(findExercise('d-major-scale')!);
     expect(notes.map(n => n.measure)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7]);
@@ -106,7 +122,7 @@ describe('exercise library', () => {
     expect(new Set(notes.map(n => n.id)).size).toBe(notes.length);
   });
 
-  it('fingering hints default on for early exercises and off for scales and melodies', () => {
-    expect(EXERCISES.filter(e => e.fingeringByDefault).map(e => e.number)).toEqual(['01', '02', '03', '04', '05', '05A', '05B', '05D', '05E', '05F']);
+  it('fingering hints default on for early exercises and fingerboard tunes', () => {
+    expect(EXERCISES.filter(e => e.fingeringByDefault).map(e => e.number)).toEqual(['01', '02', '03', '04', '05', '05A', '05B', '05D', '05E', '05F', '09A', '09B', '09C']);
   });
 });

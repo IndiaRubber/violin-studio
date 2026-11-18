@@ -49,7 +49,7 @@ test('sustained mode: finds G3, counts four beats, then advances (120 BPM)', asy
   await expect(page.getByText('4 beats = 2 s')).toBeVisible();
   const started = Date.now();
   await page.getByRole('button', { name: 'Start Listening' }).click();
-  await expect(page.locator('.hold-card')).toHaveClass(/is-holding/, { timeout: 5000 });
+  await expect(page.locator('.score-hold-graphic')).toHaveClass(/is-holding/, { timeout: 5000 });
   await expect(page.getByText(/Hold it steady — beat/)).toBeVisible();
   await expect(page.getByText('Note 1 of 4')).toBeVisible(); // still holding: quick-mode timing is not enough
   await expect(page.getByText('Note 2 of 4')).toBeVisible({ timeout: 6000 });
@@ -65,17 +65,49 @@ test('prolonged silence during a hold resets only the current note', async ({ pa
   await syntheticMic(page, 196);
   await openPractice(page);
   await page.getByRole('button', { name: 'Start Listening' }).click();
-  await expect(page.locator('.hold-card')).toHaveClass(/is-holding/, { timeout: 5000 });
+  await expect(page.locator('.score-hold-graphic')).toHaveClass(/is-holding/, { timeout: 5000 });
   await setMic(page, 196, 0);
   await expect(page.getByText(/sound stopped before the note’s full length/)).toBeVisible({ timeout: 3000 });
-  await expect(page.locator('.hold-card')).not.toHaveClass(/is-holding/);
+  await expect(page.locator('.score-hold-graphic')).not.toHaveClass(/is-holding/);
   await expect(page.getByText('Note 1 of 4')).toBeVisible();
   await setMic(page, 196, 1);
-  await expect(page.locator('.hold-card')).toHaveClass(/is-holding/, { timeout: 5000 });
+  await expect(page.locator('.score-hold-graphic')).toHaveClass(/is-holding/, { timeout: 5000 });
   // Stopping the microphone mid-hold cancels the partial hold.
   await page.getByRole('button', { name: 'Stop Listening' }).click();
-  await expect(page.locator('.hold-card')).not.toHaveClass(/is-holding/);
+  await expect(page.locator('.score-hold-graphic')).not.toHaveClass(/is-holding/);
   await expect(page.getByText('Note 1 of 4')).toBeVisible();
+});
+
+test('score line tracks held time, draws sharp above flat, and clears when retrying', async ({ page }) => {
+  await syntheticMic(page, 196);
+  await page.setViewportSize({ width: 390, height: 740 });
+  await openPractice(page);
+  const line = page.locator('.score-hold-graphic');
+  const hold = page.getByRole('progressbar', { name: 'Note hold' });
+  const controls = page.getByRole('group', { name: 'Exercise practice controls' });
+  const head = line.locator('.score-hold-pitch-head');
+  const activeLabel = page.locator('.note-hints:not(.fingering) span.active');
+  const center = await activeLabel.evaluate(node => parseFloat(node.style.left));
+  expect(Number(await line.locator('.score-hold-start').getAttribute('cx'))).toBeCloseTo(center);
+  const baseline = Number(await line.locator('.score-hold-start').getAttribute('cy'));
+  await expect(line.locator('.score-hold-beat')).toHaveCount(4);
+  await expect(hold).toHaveAttribute('aria-valuenow', '0');
+  await expect(controls.getByRole('button', { name: 'Restart exercise' })).toBeInViewport({ ratio: 1 });
+  await controls.getByRole('button', { name: 'Start Listening' }).click();
+  await expect(line).toHaveClass(/is-holding/);
+  await setMic(page, 196 * 2 ** (18 / 1200));
+  await expect.poll(async () => Number(await head.getAttribute('cy'))).toBeLessThan(baseline - 2);
+  await setMic(page, 196 * 2 ** (-18 / 1200));
+  await expect.poll(async () => Number(await head.getAttribute('cy'))).toBeGreaterThan(baseline + 2);
+  await expect(line.locator('.score-hold-pitch').first()).toBeVisible();
+  expect(Number(await hold.getAttribute('aria-valuenow'))).toBeGreaterThan(0);
+  await setMic(page, 196, 0);
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  await controls.getByRole('button', { name: 'Restart note' }).click();
+  await expect(head).toHaveCount(0);
+  await expect(hold).toHaveAttribute('aria-valuenow', '0');
+  await expect(controls.getByRole('button', { name: 'Stop Listening' })).toBeInViewport({ ratio: 1 });
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 });
 
 test('reference tone plays on demand and cannot satisfy the exercise', async ({ page }) => {
@@ -127,7 +159,7 @@ test('practice controls: string focus, tempo, hints, restart, and persistence', 
   await page.getByRole('button', { name: 'Restart exercise' }).click();
   await expect(page.getByText('Note 1 of 4')).toBeVisible();
   await page.getByRole('button', { name: 'Quick check' }).click();
-  await expect(page.locator('.hold-card')).toHaveCount(0);
+  await expect(page.locator('.score-hold-graphic')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Faster' })).toBeDisabled(); // tempo only applies to sustained notes
   await page.reload();
   await page.getByRole('button', { name: /Open Strings/ }).click();
@@ -150,12 +182,12 @@ test('practice screen fits a 360 px phone with touch-sized controls', async ({ p
   // Staff, target, detected pitch, intonation, hold and the main controls are all on screen together.
   const box = await page.evaluate(() => {
     const top = document.querySelector('.score-card')!.getBoundingClientRect().top;
-    const bottom = document.querySelector('.actions')!.getBoundingClientRect().bottom;
+    const bottom = document.querySelector('.practice-action-bar')!.getBoundingClientRect().bottom;
     return { top, bottom, height: innerHeight };
   });
   expect(box.top).toBeGreaterThanOrEqual(-1);
   expect(box.bottom).toBeLessThanOrEqual(box.height);
-  const small = await page.locator('.actions button, .tone-button, .stepper button, .chips button, .segmented button').evaluateAll(buttons => buttons.filter(b => { const r = b.getBoundingClientRect(); return r.height < 44 || r.width < 44; }).map(b => b.textContent));
+  const small = await page.locator('.practice-action-bar button, .tone-button, .stepper button, .chips button, .segmented button').evaluateAll(buttons => buttons.filter(b => { const r = b.getBoundingClientRect(); return r.height < 44 || r.width < 44; }).map(b => b.textContent));
   expect(small).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/practice-360-listening.png' });

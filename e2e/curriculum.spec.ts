@@ -48,10 +48,10 @@ test('library lists the curriculum and every exercise renders valid notation', a
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
   const cards = page.locator('.library .exercise-card');
-  await expect(cards).toHaveCount(18);
+  await expect(cards).toHaveCount(21);
   const numbers = await page.locator('.card-number').allTextContents();
-  expect(numbers).toEqual(['01', '02', '03', '04', '05', '05A', '05B', '05C', '05D', '05E', '05F', '05G', '05H', '06', '07', '08A', '08B', '08C']);
-  for (let i = 0; i < 18; i++) {
+  expect(numbers).toEqual(['01', '02', '03', '04', '05', '05A', '05B', '05C', '05D', '05E', '05F', '05G', '05H', '06', '07', '08A', '08B', '08C', '09A', '09B', '09C']);
+  for (let i = 0; i < numbers.length; i++) {
     await cards.nth(i).click();
     const svg = page.locator('.staff svg');
     await expect(svg).toBeVisible();
@@ -70,7 +70,7 @@ test('D major scale: key signature, half notes, ascending and descending (deskto
   await expect(page.getByRole('img', { name: /key of D major, 4\/4, measures 1 to 8 of 8: D4 half note current, E4 half note, F♯4 half note, G4 half note, A4 half note, B4 half note, C♯5 half note, D5 half note, C♯5 half note, B4 half note, A4 half note, G4 half note, F♯4 half note, E4 half note, D4 whole note/ })).toBeVisible();
   await expect(page.locator('output[aria-label="Tempo"]')).toHaveText('80 BPM');
   await expect(page.getByText('half note = 2 beats = 1.5 s')).toBeVisible();
-  await expect(page.locator('.hold-card .beat')).toHaveCount(2);
+  await expect(page.locator('.score-hold-beat')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/d-major-desktop.png', fullPage: true });
 });
 
@@ -105,11 +105,30 @@ test('guided half notes: holds two beats at 120 BPM then advances', async ({ pag
   for (let i = 0; i < 8; i++) await page.getByRole('button', { name: 'Faster' }).click();
   await expect(page.getByText('half note = 2 beats = 1 s')).toBeVisible();
   await page.getByRole('button', { name: 'Start Listening' }).click();
-  await expect(page.locator('.hold-card')).toHaveClass(/is-holding/, { timeout: 5000 });
+  await expect(page.locator('.score-hold-graphic')).toHaveClass(/is-holding/, { timeout: 5000 });
   await expect(page.getByText('Note 2 of 15')).toBeVisible({ timeout: 4000 });
   await setMic(page, HZ.E4);
   await expect(page.getByText('Note 3 of 15')).toBeVisible({ timeout: 5000 });
   await page.getByRole('button', { name: 'Stop Listening' }).click();
+});
+
+test('fingerboard tune opens from the trainer, follows the score, and can hide the board', async ({ page }) => {
+  await syntheticMic(page, HZ.D4, 0);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Fingerboard Trainer/ }).click();
+  await page.getByRole('button', { name: /Try a fingerboard tune/ }).click();
+  await expect(page.getByRole('heading', { name: 'Close Pair on D' })).toBeVisible();
+  const board = page.getByRole('table', { name: 'First-position violin fingerboard chart' });
+  await expect(board.locator('[data-position="D-one"]')).toHaveClass(/active/);
+  await expect(page.locator('.score-hold-beat')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Quick check' }).click();
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  await playQuick(page, ['E4', 'F♯4']);
+  await expect(board.locator('[data-position="D-high2"]')).toHaveClass(/done/);
+  await expect(board.locator('[data-position="D-three"]')).toHaveClass(/active/);
+  await page.getByRole('checkbox', { name: 'Show fingerboard' }).uncheck();
+  await expect(board).toHaveCount(0);
+  await expect(page.locator('.staff svg')).toBeVisible();
 });
 
 test('fingering hints: on by default early, off for scales, optional and remembered', async ({ page }) => {
@@ -169,7 +188,7 @@ test('changing exercise while listening releases the microphone and resets progr
   await syntheticMic(page, HZ.D4);
   await open(page, 'D Major Scale');
   await page.getByRole('button', { name: 'Start Listening' }).click();
-  await expect(page.locator('.hold-card')).toHaveClass(/is-holding/, { timeout: 5000 });
+  await expect(page.locator('.score-hold-graphic')).toHaveClass(/is-holding/, { timeout: 5000 });
   await page.getByRole('button', { name: '← Exercises' }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { micStops: number }).micStops)).toBeGreaterThan(0);
   await page.getByRole('button', { name: /G Major Scale/ }).click();

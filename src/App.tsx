@@ -63,10 +63,10 @@ export function App() {
         <button className="exercise-card" onClick={() => setScreen('tuner')}><span className="card-icon">♮</span><span><strong>Instrument Tuner</strong><small>Violin strings or chromatic · No scoring</small></span><span aria-hidden="true">→</span></button>
         <button className="exercise-card" onClick={() => setScreen('fingerboard')}><span className="card-icon">♬</span><span><strong>Fingerboard Trainer</strong><small>Explore notes, find positions, and read from the staff</small></span><span aria-hidden="true">→</span></button>
         <h2 className="library-heading">Exercises</h2>
-        <div className="library" role="list">{EXERCISES.map((e, index) => <div role="listitem" key={e.id}>{index === 5 && <h3 className="library-section">Finger Patterns</h3>}{index === 13 && <h3 className="library-section">Scales &amp; tunes</h3>}<ExerciseCard exercise={e} onOpen={() => openExercise(e.id)} /></div>)}</div>
+        <div className="library" role="list">{EXERCISES.map(e => <div role="listitem" key={e.id}>{e.id === 'pattern-move-one-finger' && <h3 className="library-section">Finger Patterns</h3>}{e.id === 'd-major-scale' && <h3 className="library-section">Scales &amp; tunes</h3>}{e.id === 'board-close-pair-d' && <h3 className="library-section">Fingerboard tunes</h3>}<ExerciseCard exercise={e} onOpen={() => openExercise(e.id)} /></div>)}</div>
       </section>}
       {screen === 'tuner' && <Tuner onBack={goHome} a4={a4} onReferenceChange={setA4} />}
-      {screen === 'fingerboard' && <FingerboardTrainer a4={a4} onBack={goHome} />}
+      {screen === 'fingerboard' && <FingerboardTrainer a4={a4} onBack={goHome} onOpenLesson={() => openExercise('board-close-pair-d')} />}
       {screen === 'exercise' && <Practice key={visit} exercise={exercise} a4={a4} initialFocus={summary?.exerciseId === exercise.id ? summary.focus : null} onBack={goHome} onOpenExercise={id => openExercise(id)} onComplete={result => { setSummary(result); setScreen('complete'); }} />}
       {screen === 'complete' && summary && <Completion summary={summary} onAgain={() => openExercise(exerciseId, true)} onNext={next ? () => openExercise(next.id) : null} onHome={goHome} />}
     </main><PwaStatus /><footer>Local practice · No account or upload</footer>

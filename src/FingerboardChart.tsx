@@ -4,9 +4,9 @@ import { spell } from './notation';
 
 const stopSpan = distanceFromNut(position('D', 'four'));
 
-export function FingerboardChart({ mode, sequence, progress, target, a4, names, fingers, hintLevel, revealed, showPosition }: {
+export function FingerboardChart({ mode, sequence, progress, target, a4, names, fingers, hintLevel, revealed, showPosition, showCompletedNames = true }: {
   mode: FingerboardMode; sequence: Position[]; progress: number; target: Position | undefined; a4: number;
-  names: boolean; fingers: boolean; hintLevel: 'full' | 'partial' | 'memory'; revealed: boolean; showPosition: boolean;
+  names: boolean; fingers: boolean; hintLevel: 'full' | 'partial' | 'memory'; revealed: boolean; showPosition: boolean; showCompletedNames?: boolean;
 }) {
   const complete = progress >= sequence.length;
   const completed = new Set(sequence.slice(0, progress).map(p => p.id));
@@ -25,7 +25,7 @@ export function FingerboardChart({ mode, sequence, progress, target, a4, names, 
         const active = !complete && target?.id === p.id && hintShown;
         const done = completed.has(p.id);
         const available = supported(p, a4);
-        const visibleName = showNames || done || mode === 'find' && active;
+        const visibleName = showNames || done && showCompletedNames || mode === 'find' && active;
         const dimmed = walkPositions !== null && !walkPositions.has(p.id);
         const label = [`${string} string`, fingers ? fingerLabel(p) : null, visibleName ? spell(p.pitch) : 'hidden note',
           !available ? 'outside microphone range' : null, active ? 'current target' : null, done ? 'completed' : null]

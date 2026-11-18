@@ -44,6 +44,8 @@ export interface Exercise {
   patternChallenge?: boolean;
   patternQuestion?: string;
   patternHintsByDefault?: boolean;
+  /** Offer a fingerboard that follows the written notes in this lesson. */
+  fingerboard?: boolean;
 }
 
 // Token format: "F#4:h@D2^" = F♯4, half note, D string, 2nd finger, high.
@@ -233,6 +235,27 @@ export const EXERCISES: Exercise[] = [
     objective: 'Combine string crossings with fingered notes.',
     measures: bars('D4:h@D0 A4:h@A0', 'F#4:h@D2^ A4:h@A0', 'G4:h@D3 B4:h@A1', 'A4:w@A0', 'B4:h@A1 G4:h@D3', 'A4:h@A0 F#4:h@D2^', 'E4:h@D1 F#4:h@D2^', 'D4:w@D0'),
     fingeringByDefault: false,
+  },
+  {
+    id: 'board-close-pair-d', number: '09A', title: 'Close Pair on D', difficulty: 2, keySignature: 'D', tempo: 72, ...COMMON,
+    description: 'A four-bar echo with high second finger on the D string.',
+    objective: 'Notice how the second and third fingers sit close together on F♯ and G.',
+    measures: bars('E4:h@D1 F#4:h@D2^', 'G4:h@D3 F#4:h@D2^', 'E4:h@D1 G4:h@D3', 'D4:w@D0'),
+    fingeringByDefault: true, fingerboard: true,
+  },
+  {
+    id: 'board-low-second-turn', number: '09B', title: 'Low Second Turn', difficulty: 2, keySignature: 'C', tempo: 72, ...COMMON,
+    description: 'A short A-string tune that puts B and C natural side by side.',
+    objective: 'Keep the first and second fingers close for B and C natural.',
+    measures: bars('A4:h@A0 C5:h@A2', 'B4:h@A1 C5:h@A2', 'D5:h@A3 B4:h@A1', 'A4:w@A0'),
+    fingeringByDefault: true, fingerboard: true,
+  },
+  {
+    id: 'board-crossing-echoes', number: '09C', title: 'Crossing Echoes', difficulty: 3, keySignature: 'G', tempo: 76, ...COMMON,
+    description: 'Switch from high second on D to low second on A, then back again.',
+    objective: 'Find the close pair on each string and read the change without sliding your whole hand.',
+    measures: bars('F#4:h@D2^ G4:h@D3', 'A4:h@A0 B4:h@A1', 'C5:h@A2 B4:h@A1', 'A4:h@A0 G4:h@D3', 'F#4:h@D2^ E4:h@D1', 'D4:w@D0'),
+    fingeringByDefault: true, fingerboard: true,
   },
 ];
 

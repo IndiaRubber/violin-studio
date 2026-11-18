@@ -3,6 +3,7 @@ import { Accidental, BarlineType, Formatter, Renderer, Stave, StaveNote, Voice }
 import { minMeasureWidth, pageOf, paginate } from './layout';
 import type { PracticeNote } from './music';
 import { DURATION_NAMES, type KeySignature } from './notation';
+import { ScoreHold, type ScoreHoldDisplay } from './ScoreHold';
 
 export const STAFF_HEIGHT = 150;
 const LEFT = 6;
@@ -22,6 +23,8 @@ export interface StaffProps {
   fingering?: (string | null)[] | null;
   /** Read-only page inspection before a pattern challenge starts; normal score following resumes on play. */
   allowPagePreview?: boolean;
+  /** Guided practice only. This visual does not control the exercise timer. */
+  hold?: ScoreHoldDisplay;
 }
 
 /**
@@ -30,10 +33,10 @@ export interface StaffProps {
  * printed accidentals, barlines, and ledger lines. Long exercises are shown a page of
  * measures at a time; the page turns when the current note moves past it.
  */
-export function Staff({ notes, currentIndex, keySignature = 'C', tempo, labels, fingering, allowPagePreview = false }: StaffProps) {
+export function Staff({ notes, currentIndex, keySignature = 'C', tempo, labels, fingering, allowPagePreview = false, hold }: StaffProps) {
   const host = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(700);
-  const [positions, setPositions] = useState<Map<number, number>>(new Map());
+  const [{ positions, pageEnd }, setGeometry] = useState({ positions: new Map<number, number>(), pageEnd: 0 });
   const [previewPage, setPreviewPage] = useState<number | null>(null);
   useEffect(() => {
     if (!host.current) return;
@@ -110,10 +113,13 @@ export function Staff({ notes, currentIndex, keySignature = 'C', tempo, labels, 
     // Exposed for tests: what VexFlow actually rendered on this page.
     svg?.setAttribute('data-note-durations', rendered.join(' '));
     svg?.setAttribute('data-measures', `${page.first + 1}-${page.last + 1}`);
-    setPositions(centers);
+    setGeometry({ positions: centers, pageEnd: x });
   }, [notes, measures, currentIndex, renderWidth, width, tempo, keySignature, page, pageIndex]);
 
   const visibleIndices = page ? measures.slice(page.first, page.last + 1).flat() : [];
+  const activeHold = visibleIndices.includes(currentIndex) ? hold : undefined;
+  const holdStart = positions.get(currentIndex);
+  const holdEnd = Math.min(renderWidth - 8, (positions.get(currentIndex + 1) ?? pageEnd) - 6);
   const label = `Treble clef staff, ${keySignature === 'C' ? 'no key signature' : `key of ${keySignature} major`}, 4/4${page ? `, measures ${page.first + 1} to ${page.last + 1} of ${measures.length}` : ''}: ${visibleIndices.map(i => `${notes[i].name} ${DURATION_NAMES[notes[i].duration ?? 'w']}${i === currentIndex ? ' current' : i < currentIndex ? ' complete' : ''}`).join(', ')}`;
   return <div className="staff-wrap">
     {pages.length > 1 && page && <p className="staff-page">Measures {page.first + 1}–{page.last + 1} of {measures.length}</p>}
@@ -121,8 +127,17 @@ export function Staff({ notes, currentIndex, keySignature = 'C', tempo, labels, 
       <button type="button" className="secondary" onClick={() => setPreviewPage(Math.max(0, pageIndex - 1))} disabled={pageIndex === 0}>Previous score page</button>
       <button type="button" className="secondary" onClick={() => setPreviewPage(Math.min(pages.length - 1, pageIndex + 1))} disabled={pageIndex === pages.length - 1}>Next score page</button>
     </div>}
-    <div className="staff" ref={host} role="img" aria-label={label} />
+    <div className={`staff-stage${activeHold ? ' has-hold' : ''}`}>
+      <div className="staff" ref={host} role="img" aria-label={label} />
+      {activeHold && holdStart !== undefined && holdEnd > holdStart &&
+        <ScoreHold hold={activeHold} start={holdStart} end={holdEnd} width={renderWidth} />}
+    </div>
     <div className="note-hints">{visibleIndices.map(index => <span key={notes[index].id} className={index === currentIndex ? 'active' : index < currentIndex ? 'done' : ''} style={{ left: positions.get(index) ?? 0 }}>{labels[index] ?? ''}</span>)}</div>
     {fingering && <div className="note-hints fingering" aria-label="Suggested string and finger">{visibleIndices.map(index => <span key={notes[index].id} className={index === currentIndex ? 'active' : ''} style={{ left: positions.get(index) ?? 0 }}>{fingering[index] ?? ''}</span>)}</div>}
+    {activeHold && <div className="score-hold-meta" role="progressbar" aria-label="Note hold" aria-valuenow={Math.round(activeHold.progress * 100)}
+      aria-valuetext={activeHold.holding ? `Beat ${activeHold.beat} of ${activeHold.beats}` : 'Hold starts once the note is steady'}>
+      <span>{activeHold.durationLabel}</span>
+      <span>{activeHold.cents === null ? 'Pitch trace starts when steady' : `${activeHold.cents > 0 ? '+' : ''}${Math.round(activeHold.cents)} cents${activeHold.holding ? ` · Beat ${activeHold.beat}/${activeHold.beats}` : ''}`}</span>
+    </div>}
   </div>;
 }

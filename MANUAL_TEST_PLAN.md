@@ -1,5 +1,11 @@
 # Real violin manual test plan
 
+## Guided score and fingerboard tunes
+
+1. On a phone, open **09A Close Pair on D** from the trainer or library. Confirm that the staff and fingerboard highlight the same note and that the board can be hidden.
+2. In Guided mode, bow a half note and the last whole note. Confirm that the hold line starts only when the pitch steadies, has two or four ticks respectively, and resets under the next note. Drift slightly sharp and flat and check that the trace rises and dips.
+3. While the score is in view, use both restart icons. Confirm that they leave the page in place and keep the microphone open if it was already listening. Quick check should have no hold line.
+
 ## Milestone 2E: Fingerboard Trainer (Android and real violin unverified)
 
 1. On Android Chrome, open the HTTPS preview while online and wait for **Available offline**. Open Fingerboard Trainer, then switch to airplane mode and reopen. Confirm all three modes, the staff, and Hear note still work.
@@ -37,7 +43,7 @@ Use Android Chrome at the production URL where possible, and a real violin. Keep
 7. Select a single string (four identical whole notes). Confirm one continuous bow cannot complete more than one note; lifting the bow briefly allows the next.
 8. Use **Restart note**, **Restart exercise**, **Quick check**, and **Show note names**. With names hidden, the target card shows "?" and the reference banner does not name the note.
 9. Lock the screen or switch apps during a hold; on return the hold must not complete from stale input.
-10. Confirm the staff, target, detected pitch, intonation meter, beat counter, and Start/Stop button are visible together on the phone while practising.
+10. Confirm the staff, hold line, and fixed microphone and restart icons are visible together on the phone while practising.
 
 ## Milestone 2B: exercise library and scales (not yet performed on a violin)
 
