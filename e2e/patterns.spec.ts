@@ -149,7 +149,9 @@ test('05E identical A4s require a credible release in the synthetic microphone p
   await page.waitForTimeout(650);
   await expect(page.getByText('Note 5 of 6')).toBeVisible();
   await setMic(page, 440, 0);
-  await page.waitForTimeout(300);
+  // Wait for the engine to observe a credible release; a fixed pause can elapse
+  // without enough audio-analysis frames when other browser tests share the CPU.
+  await expect(page.getByText('Waiting for a note…')).toBeVisible({ timeout: 5000 });
   await setMic(page, 440);
   await expect(page.getByText('Note 6 of 6')).toBeVisible({ timeout: 5000 });
   await page.getByRole('button', { name: 'Stop Listening' }).click();

@@ -1,5 +1,11 @@
 # Violin Studio
 
+## Fingerboard Trainer (Milestone 2E)
+
+Open **Fingerboard Trainer** from Home. **Guided Fingerboard Walk** plays a selected G, D, or A string up and back, with low or high second finger; D+A offers a short combined sequence. **Find the Note** shuffles familiar notes and offers full labels, a partial string/finger hint, or a memory view. **Staff + Fingerboard** pairs D/A notes with the treble staff. Note names, suggested fingers, and the staff mode's position highlight have separate controls. **Hear note** uses the synthesized reference at the saved A4 setting and pauses microphone evaluation through playback and settling. Start Listening requests microphone access only when pressed.
+
+The chart shows suggested positions. The microphone verifies pitch, not the actual string or finger. Low and high second finger are alternatives, and identical pitches can have distinct positions (for example, D-string fourth-finger A4 and open A4). Notes beyond the exercise detector's 160–800 Hz range are marked **Out of range**; the complete E-string walk is unavailable. The trainer and staff work offline after **Available offline** appears. See [MANUAL_TEST_PLAN.md](MANUAL_TEST_PLAN.md) for Android and real-violin checks.
+
 A local, microphone based violin practice companion. Open Strings Practice checks sustained pitch while reading a treble clef staff. The independent Instrument Tuner provides continuous violin-string or chromatic feedback without scoring.
 
 ## Requirements and setup

@@ -43,6 +43,13 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await expect(page.locator('.tone-status')).toHaveCount(0, { timeout: 4000 });
   // Milestone 2B: every library exercise is bundled and opens offline.
   await page.getByRole('button', { name: '← Exercises' }).click();
+  await page.getByRole('button', { name: /Fingerboard Trainer/ }).click();
+  await expect(page.locator('.fb-chart-row')).toHaveCount(6);
+  await page.getByRole('button', { name: 'Staff + Fingerboard' }).click();
+  await expect(page.locator('.staff svg')).toBeVisible();
+  await page.getByRole('button', { name: 'Hear note' }).click();
+  await expect(page.getByText(/Microphone paused/)).toBeVisible();
+  await page.getByRole('button', { name: '← Exercises' }).click();
   await expect(page.locator('.library .exercise-card')).toHaveCount(18);
   for (const title of ['Move One Finger', 'Move the Shape', 'Spot It Before You Play', 'Low Second Finger on A', 'Add the Fourth Finger', 'Change Shape at the Crossing', 'Read the Shape Out of Order', 'Spot the Change in a Tune']) {
     await page.getByRole('button', { name: new RegExp(title) }).click();

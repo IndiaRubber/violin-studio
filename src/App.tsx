@@ -4,6 +4,7 @@ import { Practice, type PracticeSummary } from './Practice';
 import { PwaStatus } from './PwaStatus';
 import { loadReference, saveReference } from './reference';
 import { Tuner } from './Tuner';
+import { FingerboardTrainer } from './FingerboardTrainer';
 
 const durationsOf = (exercise: Exercise) => {
   const kinds = new Set(exercise.measures.flat().map(note => note.duration));
@@ -38,7 +39,7 @@ function Completion({ summary, onAgain, onNext, onHome }: { summary: PracticeSum
 }
 
 export function App() {
-  const [screen, setScreen] = useState<'select' | 'exercise' | 'complete' | 'tuner'>('select');
+  const [screen, setScreen] = useState<'select' | 'exercise' | 'complete' | 'tuner' | 'fingerboard'>('select');
   const [a4, setA4] = useState(loadReference);
   useEffect(() => saveReference(a4), [a4]);
   const [exerciseId, setExerciseId] = useState(EXERCISES[0].id);
@@ -60,10 +61,12 @@ export function App() {
         <p className="eyebrow">A quiet place to practice</p><h1>Hear the note. Find your sound.</h1>
         <p>Play a real violin and follow the notes on the staff. Work through the exercises in order, or pick any one.</p>
         <button className="exercise-card" onClick={() => setScreen('tuner')}><span className="card-icon">♮</span><span><strong>Instrument Tuner</strong><small>Violin strings or chromatic · No scoring</small></span><span aria-hidden="true">→</span></button>
+        <button className="exercise-card" onClick={() => setScreen('fingerboard')}><span className="card-icon">♬</span><span><strong>Fingerboard Trainer</strong><small>Explore notes, find positions, and read from the staff</small></span><span aria-hidden="true">→</span></button>
         <h2 className="library-heading">Exercises</h2>
         <div className="library" role="list">{EXERCISES.map((e, index) => <div role="listitem" key={e.id}>{index === 5 && <h3 className="library-section">Finger Patterns</h3>}{index === 13 && <h3 className="library-section">Scales &amp; tunes</h3>}<ExerciseCard exercise={e} onOpen={() => openExercise(e.id)} /></div>)}</div>
       </section>}
       {screen === 'tuner' && <Tuner onBack={goHome} a4={a4} onReferenceChange={setA4} />}
+      {screen === 'fingerboard' && <FingerboardTrainer a4={a4} onBack={goHome} />}
       {screen === 'exercise' && <Practice key={visit} exercise={exercise} a4={a4} initialFocus={summary?.exerciseId === exercise.id ? summary.focus : null} onBack={goHome} onOpenExercise={id => openExercise(id)} onComplete={result => { setSummary(result); setScreen('complete'); }} />}
       {screen === 'complete' && summary && <Completion summary={summary} onAgain={() => openExercise(exerciseId, true)} onNext={next ? () => openExercise(next.id) : null} onHome={goHome} />}
     </main><PwaStatus /><footer>Local practice · No account or upload</footer>

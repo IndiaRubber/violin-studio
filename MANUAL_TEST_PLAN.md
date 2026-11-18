@@ -1,5 +1,16 @@
 # Real violin manual test plan
 
+## Milestone 2E: Fingerboard Trainer (Android and real violin unverified)
+
+1. On Android Chrome, open the HTTPS preview while online and wait for **Available offline**. Open Fingerboard Trainer, then switch to airplane mode and reopen. Confirm all three modes, the staff, and Hear note still work.
+2. In Guided Fingerboard Walk, choose D high 2. Bow D4–E4–F♯4–G4–A4 and descend. Verify the current target is amber, completed positions turn green, the detected note and signed cents make sense, and a wrong or uncertain pitch does not advance. Repeat with D low 2 (F natural), A high/low 2 (C♯/C natural), and G high/low 2 (B/B♭). Try D+A combined.
+3. In Find the Note, compare Full labels, Partial hint, and Memory. Confirm the target position is not highlighted before Reveal current position, and a completed note becomes visible. Hide note names and suggested finger details independently.
+4. In Staff + Fingerboard, read each D/A note on the treble staff, then play it. Confirm staff completion and chart green state advance together. Hide the suggested position and fingering to practise reading alone.
+5. Play Hear note while listening and make a matching acoustic sound into the mic. Confirm playback and settling never advance the exercise. Stop playback, restart, change modes, and exit during a tone; check sound and microphone stop. Compare A4 = 440 and 442 in the tuner, then return to the trainer.
+6. At 360px and 390px portrait widths, confirm all four string columns, row labels, meter, and controls fit without horizontal scrolling. Try touch, keyboard, and reduced-motion settings. E-string high pitches should say **Out of range**, and the full E walk should be disabled.
+
+Record device, microphone placement, A4 setting, measured pitch, and any missed or false detections. Browser tests use synthetic oscillator input; they do not validate acoustic violin or Android microphone performance.
+
 Use a Windows Chrome or Edge browser at localhost and an acoustic violin. Note the browser, input device, sample rate if known, room, microphone distance, and whether another app applies noise suppression. Open developer diagnostics during each trial. Record observed raw/smoothed frequency, clarity, RMS, and match state. Do not infer physical technique from these readings.
 
 1. Start the exercise. Confirm permission is requested only after **Start Listening**. Deny permission, retry after allowing it, and test with no microphone connected.
