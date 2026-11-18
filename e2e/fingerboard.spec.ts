@@ -111,6 +111,46 @@ test('mode navigation stops microphone and reference playback', async ({ page })
   await expect(page.getByRole('button', { name: 'Start Listening' })).toBeVisible();
 });
 
+test('phone controls restart a note or the whole walk without scrolling or stopping the mic', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await mic(page); await open(page);
+  const controls = page.getByRole('group', { name: 'Fingerboard practice controls' });
+  const start = controls.getByRole('button', { name: 'Start Listening' });
+  const restartNote = controls.getByRole('button', { name: 'Restart note' });
+  const restartWalk = controls.getByRole('button', { name: 'Restart sequence' });
+  for (const action of [start, restartNote, restartWalk]) {
+    await expect(action).toBeInViewport({ ratio: 1 });
+    const bounds = (await action.boundingBox())!;
+    expect(bounds.width).toBeGreaterThanOrEqual(44);
+    expect(bounds.height).toBeGreaterThanOrEqual(44);
+  }
+
+  await start.click();
+  const stop = controls.getByRole('button', { name: 'Stop Listening' });
+  await expect(stop).toBeInViewport({ ratio: 1 });
+  await setMic(page, 293.6648, 1);
+  await expect(page.getByText('Note 2 of 9')).toBeVisible();
+  await setMic(page, 293.6648, 0);
+
+  await page.getByRole('table', { name: 'First-position violin fingerboard chart' }).scrollIntoViewIfNeeded();
+  const scrollY = await page.evaluate(() => window.scrollY);
+  expect(scrollY).toBeGreaterThan(0);
+  await expect(controls).toBeInViewport({ ratio: 1 });
+  await restartNote.click();
+  await expect(page.getByText('Note 2 of 9')).toBeVisible();
+  await expect(page.locator('.fb-chart .done')).toHaveCount(1);
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
+
+  await restartWalk.click();
+  await expect(page.getByText('Note 1 of 9')).toBeVisible();
+  await expect(page.locator('.fb-chart .done')).toHaveCount(0);
+  await expect(page.locator('[data-position="D-open"]')).toHaveClass(/active/);
+  await expect(stop).toBeInViewport({ ratio: 1 });
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
+  await stop.click();
+  await expect(start).toBeInViewport({ ratio: 1 });
+});
+
 test('a full synthetic D-string walk completes with green positions', async ({ page }) => {
   await mic(page); await open(page);
   await page.getByRole('button', { name: 'Start Listening' }).click();
@@ -123,9 +163,12 @@ test('a full synthetic D-string walk completes with green positions', async ({ p
     if (i === 4) await expect(page.locator('[data-position="D-three"]')).toHaveClass(/active done/);
   }
   await expect(page.locator('.fb-chart .done')).toHaveCount(5);
+  await expect(page.getByRole('button', { name: 'Start Listening' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Restart sequence' })).toBeEnabled();
   await page.screenshot({ path: 'test-results/m2e-complete.png', fullPage: true });
   await page.getByRole('button', { name: 'Restart sequence' }).click();
   await expect(page.getByText('Note 1 of 9')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start Listening' })).toBeEnabled();
 });
 
 test('390px, desktop, keyboard, and reduced motion keep controls usable', async ({ page }) => {

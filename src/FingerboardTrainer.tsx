@@ -118,6 +118,7 @@ export function FingerboardTrainer({ a4, onBack }: { a4: number; onBack: () => v
   const changeMode = (next: FingerboardMode) => { if (mode !== next) { stopListening(); setMode(next); } };
   const changeScope = (next: Scope) => { if (scope !== next) { stopListening(); setScope(next); } };
   const nextFind = () => { previousFind.current = sequence.at(-1)?.id; setSeed(value => value + 1); };
+  const listenLabel = starting ? 'Cancel microphone connection' : listening ? 'Stop Listening' : 'Start Listening';
   const status = complete ? 'Sequence complete. Repeat whenever you like.' : demo ? 'Reference tone playing or settling. Microphone paused.' : !listening ? 'Start listening when you are ready.' : state === 'release' ? 'Good. Release briefly before the next note.' : state === 'matching' ? 'That pitch is steady. Keep playing.' : state === 'wrong' ? 'Different pitch. Find the target and try again.' : state === 'quiet' ? 'Waiting for a clear note.' : state === 'uncertain' || state === 'outlier' ? 'Uncertain sound. Try a steady note.' : 'Play the target note.';
 
   return <section className="fingerboard-trainer">
@@ -134,15 +135,38 @@ export function FingerboardTrainer({ a4, onBack }: { a4: number; onBack: () => v
       {mode === 'find' && <button className="secondary" onClick={() => setRevealed(true)}>Reveal current position</button>}
       {mode === 'staff' && <label><input type="checkbox" checked={showPosition} onChange={e => setShowPosition(e.target.checked)} /> Show target position</label>}
     </div>
+    <div className="fb-action-bar" role="group" aria-label="Fingerboard practice controls">
+      <button type="button" className="primary" aria-label={listenLabel} title={listenLabel} onClick={listening || starting ? stopListening : start} disabled={complete}>
+        <PracticeIcon name={listening || starting ? 'stop' : 'microphone'} />
+      </button>
+      <button type="button" className="secondary" aria-label="Restart note" title="Restart note" disabled={complete} onClick={() => { session.current?.restartNote(); setState('quiet'); setReading(emptyReading); }}>
+        <PracticeIcon name="note" />
+      </button>
+      <button type="button" className="secondary" aria-label="Restart sequence" title="Restart sequence" onClick={restart}>
+        <PracticeIcon name="sequence" />
+      </button>
+      {complete && mode === 'find' && <button type="button" className="secondary" aria-label="New shuffle" title="New shuffle" onClick={nextFind}>
+        <PracticeIcon name="shuffle" />
+      </button>}
+    </div>
     {mode === 'staff' && <div className="score-card"><div className="score-heading">Read the staff, then find its suggested position</div><Staff notes={notes} currentIndex={progress} keySignature="C" labels={notes.map((n, i) => names || i < progress ? n.name : i === progress ? 'Now' : '·')} fingering={fingers && showPosition ? sequence.map(p => `${p.string}${p.finger}`) : null} /></div>}
     <FingerboardChart mode={mode} sequence={sequence} progress={progress} target={target} a4={a4} names={names} fingers={fingers} hintLevel={hintLevel} revealed={revealed} showPosition={showPosition} />
     <p className="fb-chart-note" id="fb-spacing-info">Open notes sit above the nut. Below it, dots show relative fingertip spacing toward the bridge. Low 2 and high 2 are alternate spots for the same finger. “Out of range” means this microphone exercise cannot assess that pitch at A4 = {a4} Hz.</p>
     <div className="fb-progress"><strong>{complete ? 'Complete' : `Note ${progress + 1} of ${sequence.length}`}</strong><span>{progress} played</span></div>
     <div className="feedback-grid"><div className="feedback-card target-card"><div><p className="eyebrow">Target</p><strong>{target ? spellPosition(target) : '—'}</strong><small>{target ? mode === 'find' && !revealed && hintLevel === 'memory' || mode === 'staff' && !showPosition ? 'Find its place on the chart' : `${target?.string} string · ${fingers ? fingerLabel(target!) : 'suggested finger hidden'}` : ''}</small></div><button className="tone-button" onClick={() => void hear()}>{demo ? 'Stop tone' : 'Hear note'}</button></div><div className="feedback-card"><p className="eyebrow">Detected</p><strong>{liveHz ? frequencyToNote(liveHz, a4) : '—'}</strong><small>{liveHz ? `${liveHz.toFixed(1)} Hz` : state === 'release' ? 'Waiting for next note' : listening ? 'Insufficient or uncertain signal' : 'Microphone off'}</small></div><div className="feedback-card meter-card"><p className="eyebrow">Intonation <strong>{cents === null ? '—' : `${Math.round(cents) > 0 ? '+' : ''}${Math.round(cents)} cents`}</strong></p><div className="meter"><span className="center-line"/><span className="meter-needle" style={{ left: `${50 + Math.max(-60, Math.min(60, cents ?? 0)) / 120 * 100}%` }}/></div><div className="meter-labels"><span>Flat</span><span>In tune</span><span>Sharp</span></div></div></div>
     <p className="status" role="status">{status}</p>{last && <p className="fb-last">Last played: {spellPosition(last)} · suggested {last.string} string, {fingerLabel(last)}.</p>}{error && <p role="alert" className="error">{error}</p>}
-    <div className="actions"><button className="primary" onClick={listening || starting ? stopListening : start} disabled={complete}>{starting ? 'Connecting…' : listening ? 'Stop Listening' : 'Start Listening'}</button><button className="secondary" onClick={() => { session.current?.restartNote(); setState('quiet'); setReading(emptyReading); }}>Restart note</button><button className="secondary" onClick={restart}>Restart sequence</button>{complete && mode === 'find' && <button className="secondary" onClick={nextFind}>New shuffle</button>}</div>
     <details className="help"><summary>How this trainer works</summary><p>Play acoustic violin notes steadily and in tune. The same written pitch can be produced in more than one place, such as A4 on the D string with finger 4 or the open A string. Pitch alone cannot verify the chosen position. Hear note plays a synthesized reference at the current A4 setting. The microphone pauses during playback and for a short settling period.</p></details>
   </section>;
+}
+
+function PracticeIcon({ name }: { name: 'microphone' | 'stop' | 'note' | 'sequence' | 'shuffle' }) {
+  return <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    {name === 'microphone' && <><rect x="9" y="2.5" width="6" height="12" rx="3" /><path d="M5.5 10.5v1a6.5 6.5 0 0 0 13 0v-1M12 18v3.5m-3 0h6" /></>}
+    {name === 'stop' && <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none" />}
+    {name === 'note' && <><path d="M3 10a9 9 0 1 1 .8 7M3 5.5V10h4.5M13.5 14.5V7.75l3 1" /><ellipse cx="11.5" cy="14.5" rx="2" ry="1.5" /></>}
+    {name === 'sequence' && <><path d="M5 5v14" /><path d="m18 5-10 7 10 7z" /></>}
+    {name === 'shuffle' && <path d="M3 6h3c4 0 5 12 11 12h4m-3-3 3 3-3 3M3 18h3c1.5 0 2.5-1.5 3.5-3.5m4-5C14.5 7.5 15.5 6 17 6h4m-3-3 3 3-3 3" />}
+  </svg>;
 }
 
 function spellPosition(p: Position) { return `${p.pitch.step}${p.pitch.accidental === '#' ? '♯' : p.pitch.accidental === 'b' ? '♭' : ''}${p.pitch.octave}`; }

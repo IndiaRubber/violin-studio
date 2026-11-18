@@ -362,15 +362,21 @@ main{width:calc(100% - 26px)}
 .fb-chart-note{width:min(100%,26rem);font-size:13px;color:#52646a;line-height:1.4;margin:8px auto 16px}
 .fb-progress{display:flex;justify-content:space-between;gap:8px;margin:14px 0 8px;font-size:16px}
 .fb-last{color:#215d45;font-weight:700;font-size:14px}
+.fb-action-bar{display:flex;gap:8px;width:max-content;margin:10px auto 0;padding:6px;border:1px solid #ded7cb;border-radius:16px;background:#faf6ef}
+.fb-action-bar button{display:grid;place-items:center;width:46px;min-height:46px;padding:0}
+.fb-action-bar button:disabled{opacity:.5;cursor:default}
 .fingerboard-trainer .score-card{margin:12px 0}
 .fingerboard-trainer .feedback-grid{margin-top:12px}
 .fingerboard-trainer .target-card small{white-space:normal}
 .fingerboard-trainer .tone-button{width:auto}
+@media(max-width:650px){
+  .app-shell:has(.fb-action-bar){padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))}
+  .fb-action-bar{position:fixed;z-index:2;left:50%;bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);margin:0;box-shadow:0 4px 18px #20313b26}
+}
 @media(max-width:480px){
   .fingerboard-trainer{padding-top:8px}
   .fb-chart{--fb-gutter:2.9rem;--fb-inset:6px;--fb-dot-h:28px}
   .fb-chart-head,.fb-row-name,.fb-nut span{font-size:11px}
   .fb-dot strong{font-size:15px}
-  .fingerboard-trainer .actions{flex-wrap:wrap}
 }
 @media(prefers-reduced-motion:no-preference){.fb-cell.done .fb-dot{animation:fb-success .28s ease-out}@keyframes fb-success{from{box-shadow:inset 0 0 0 4px #28775d}to{box-shadow:inset 0 0 0 0 transparent}}}

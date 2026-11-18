@@ -4,6 +4,8 @@
 
 Phone preview of the D-string map: [high second finger](docs/screenshots/m2e-spacing-high2.png) · [low second finger](docs/screenshots/m2e-spacing-low2.png).
 
+On phones, the mic/stop, restart-note, and restart-sequence icons stay at the bottom of the screen while you look at the fingerboard. The note with a circular arrow retries just the current note. The back-to-start icon resets the whole walk.
+
 Open **Fingerboard Trainer** from Home. **Guided Fingerboard Walk** plays a selected G, D, or A string up and back, with low or high second finger; D+A offers a short combined sequence. **Find the Note** shuffles familiar notes and offers full labels, a partial string/finger hint, or a memory view. **Staff + Fingerboard** pairs D/A notes with the treble staff. The board shows relative fingertip spacing from the nut, so you can see which fingers sit close together. Note names, suggested fingers, and the staff mode's position highlight have separate controls. **Hear note** uses the synthesized reference at the saved A4 setting and pauses microphone evaluation through playback and settling. Start Listening requests microphone access only when pressed.
 
 The chart shows suggested positions. The microphone verifies pitch, not the actual string or finger. Low and high second finger are alternatives, and identical pitches can have distinct positions (for example, D-string fourth-finger A4 and open A4). Notes beyond the exercise detector's 160–800 Hz range are marked **Out of range**; the complete E-string walk is unavailable. The trainer and staff work offline after **Available offline** appears. See [MANUAL_TEST_PLAN.md](MANUAL_TEST_PLAN.md) for Android and real-violin checks.
