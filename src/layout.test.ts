@@ -1,34 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { minMeasureWidth, pageOf, paginate } from './layout';
+import { inspectWindow, scoreTrack, trackOffset, TRACK_MEASURE_PX, TRACK_PLAYHEAD_X } from './layout';
 import { loadPreferences, savePreferences } from './preferences';
 
-const header = (page: number) => (page === 0 ? 98 : 72); // clef + D major key (+ 4/4 on page 1)
-
-describe('measure paging', () => {
-  it('keeps all four open-string measures on one page at phone width', () => {
-    expect(paginate([1, 1, 1, 1], 318, page => (page === 0 ? 76 : 50))).toEqual([{ first: 0, last: 3 }]);
+describe('practice score track', () => {
+  it('places equally timed onsets at equal distances even across measures', () => {
+    const track = scoreTrack([{ measure: 0, duration: 'h' }, { measure: 0, duration: 'h' },
+      { measure: 1, duration: 'h' }, { measure: 1, duration: 'h' }, { measure: 2, duration: 'w' }]);
+    const positions = track.slots.map(slot => slot.x);
+    expect(positions).toEqual([42, 98, 154, 210, 266]);
+    expect(track.slots.map(slot => slot.holdEnd - slot.x)).toEqual([48, 48, 48, 48, 104]);
+    expect(track.slots.at(-1)!.holdEnd).toBeLessThan(track.width);
   });
-  it('splits an 8-measure half-note scale into readable windows on a 360 px phone', () => {
-    const pages = paginate([2, 2, 2, 2, 2, 2, 2, 1], 330, header);
-    expect(pages.length).toBeGreaterThan(1);
-    expect(pages.flatMap(p => Array.from({ length: p.last - p.first + 1 }, (_, i) => p.first + i))).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
-    pages.forEach(page => expect(page.last).toBeGreaterThanOrEqual(page.first));
-    // Measures are never squeezed below their readable width.
-    pages.forEach((page, i) => {
-      let used = header(i);
-      for (let m = page.first; m <= page.last; m++) used += minMeasureWidth(m === 7 ? 1 : 2);
-      expect(used).toBeLessThanOrEqual(330);
-    });
+  it('gives whole notes double the distance of half notes and anchors the last one', () => {
+    const track = scoreTrack([{ duration: 'w' }, { measure: 1, duration: 'h' }, { measure: 1, duration: 'h' }]);
+    expect(track.slots.map(slot => slot.x)).toEqual([42, 154, 210]);
+    for (const slot of track.slots) expect(slot.x - trackOffset(slot.x)).toBe(TRACK_PLAYHEAD_X);
+    expect(trackOffset(undefined)).toBe(0);
   });
-  it('shows a whole scale on one page on a wide screen', () => {
-    expect(paginate([2, 2, 2, 2, 2, 2, 2, 1], 1200, header)).toEqual([{ first: 0, last: 7 }]);
-  });
-  it('always places at least one measure per page, even if very narrow', () => {
-    expect(paginate([2, 2], 50, header)).toEqual([{ first: 0, last: 0 }, { first: 1, last: 1 }]);
-  });
-  it('finds the page holding the current measure', () => {
-    const pages = [{ first: 0, last: 1 }, { first: 2, last: 4 }, { first: 5, last: 7 }];
-    expect([0, 1, 2, 4, 5, 7].map(m => pageOf(pages, m))).toEqual([0, 0, 1, 1, 2, 2]);
+  it('allows inspection without stretching the last or narrowest window', () => {
+    expect(inspectWindow(5, 2 * TRACK_MEASURE_PX, 2)).toEqual({ first: 2, last: 3, length: 2 });
+    expect(inspectWindow(5, 2 * TRACK_MEASURE_PX, 10)).toEqual({ first: 4, last: 4, length: 2 });
+    expect(inspectWindow(5, 95, 0)).toEqual({ first: 0, last: 0, length: 1 });
   });
 });
 

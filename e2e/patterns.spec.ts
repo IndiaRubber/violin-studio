@@ -90,13 +90,13 @@ test('pattern demo suppresses the microphone through all notes, gaps and settlin
   await page.getByRole('button', { name: 'Stop Listening' }).click();
 });
 
-test('360px phrase crosses a score page while the revealed cue remains understandable', async ({ page }) => {
+test('360px phrase scrolls to the final note while preserving the revealed cue', async ({ page }) => {
   await syntheticMic(page);
   await page.setViewportSize({ width: 360, height: 740 });
   await open(page, 'Spot It Before You Play');
   await page.getByRole('button', { name: 'Show answer' }).click();
   await expect(page.locator('.pattern-guide')).toContainText('Morning Steps, measures 3–4');
-  await expect(page.getByText('Measures 1–2 of 3')).toBeVisible();
+  await expect(page.getByText('Measure 1 of 3')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Quick check' }).click();
   await page.getByRole('button', { name: 'Start Listening' }).click();
@@ -104,7 +104,14 @@ test('360px phrase crosses a score page while the revealed cue remains understan
     await setMic(page, hz);
     await expect(page.getByText(`Note ${index + 2} of 5`)).toBeVisible({ timeout: 5000 });
   }
-  await expect(page.getByText('Measures 3–3 of 3')).toBeVisible();
+  await expect(page.getByText('Measure 3 of 3')).toBeVisible();
+  const current = page.locator('[data-score-note="4"]');
+  await expect(current).toHaveAttribute('data-note-state', 'current');
+  await expect.poll(() => current.evaluate(note => {
+    const window = note.closest('.staff-track-window')!.getBoundingClientRect();
+    const bounds = note.getBoundingClientRect();
+    return bounds.width > 0 && bounds.left > window.left && bounds.right < window.right;
+  })).toBe(true);
   await expect(page.locator('.pattern-guide')).toContainText('F♯ and G are the close pair');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await setMic(page, 392);
@@ -133,7 +140,7 @@ test('05H lets a learner inspect both phone score pages before revealing the ans
   await expect(page.locator('.pattern-group-list')).toContainText('A string: low 2');
   await page.getByRole('button', { name: 'Start Listening' }).click();
   await expect(page.getByRole('button', { name: 'Next score page' })).toHaveCount(0);
-  await expect(page.getByText('Measures 1–2 of 4')).toBeVisible();
+  await expect(page.getByText('Measure 1 of 4')).toBeVisible();
   await page.getByRole('button', { name: 'Stop Listening' }).click();
 });
 

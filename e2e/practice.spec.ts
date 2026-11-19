@@ -32,7 +32,7 @@ test('renders four whole notes in 4/4 with ledger lines and a tempo mark', async
   const svg = page.locator('.staff svg');
   await expect(svg).toHaveAttribute('data-note-durations', 'w w w w');
   await expect(page.getByRole('img', { name: /Treble clef staff, no key signature, 4\/4, measures 1 to 4 of 4: G3 whole note current, D4 whole note, A4 whole note, E5 whole note/ })).toBeVisible();
-  await expect(svg.locator('text', { hasText: '=' }).or(svg.locator('text', { hasText: '60' })).first()).toBeVisible();
+  await expect(page.locator('.staff-clef .staff-tempo-mark')).toHaveText('♩ = 60');
   await expect(page.getByText('4 beats = 4 s')).toBeVisible();
   // Each note sits in its own measure, left to right in written order.
   const xs = await page.locator('.note-hints:not(.fingering) span').evaluateAll(spans => spans.map(span => span.getBoundingClientRect().x));

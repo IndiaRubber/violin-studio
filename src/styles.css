@@ -415,3 +415,18 @@ main{width:calc(100% - 26px)}
   .lesson-fingerboard .fb-chart{--fb-dot-h:24px;padding-bottom:19px}
   .lesson-fingerboard .fb-neck{height:13rem}
 }
+
+/* Practice score moves as one layer. Its notes keep the same size at every viewport width. */
+.staff-scroller{display:grid;width:100%;min-width:0}
+.staff-clef{position:relative;height:150px}
+.staff-tempo-mark{position:absolute;top:24px;left:6px;color:#20313b;font-size:13px;font-weight:700;white-space:nowrap}
+.staff-clef svg,.staff-track .staff svg{display:block;max-width:none}
+.staff-track-window{position:relative;min-width:0;overflow:clip}
+.staff-track-window[data-overflow=true]::after{content:"";position:absolute;inset:0 0 0 auto;width:13px;background:linear-gradient(to right,#fffdfa00,#fffdfa);pointer-events:none}
+.staff-track{transition:transform 270ms cubic-bezier(.2,.7,.25,1)}
+.staff-track .note-hints{margin:0 0 2px}
+.staff-track [data-note-state]{color:#617080}
+.staff-track [data-note-state=done]{color:#28775d}
+.staff-track [data-note-state=current]{color:#a34b29}
+.staff-playhead{position:absolute;top:52px;bottom:18px;width:24px;transform:translateX(-50%);border-radius:12px;background:#a34b2911;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.staff-track{transition:none}}

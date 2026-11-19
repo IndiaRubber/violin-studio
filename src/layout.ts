@@ -1,36 +1,37 @@
-// Pure measure-paging for the staff. Narrow screens show a readable window of whole
-// measures (like turning pages) instead of shrinking a long exercise to fit.
+import { DURATION_BEATS, type Duration } from './notation';
+import { BEATS_PER_MEASURE } from './tempo';
 
-/** Minimum readable width of a measure body, by number of notes it holds. */
-export function minMeasureWidth(notesInMeasure: number): number {
-  return notesInMeasure <= 1 ? 58 : 24 + 40 * notesInMeasure;
-}
+export const TRACK_BEAT_PX = 28;
+export const TRACK_MEASURE_PX = TRACK_BEAT_PX * BEATS_PER_MEASURE;
+export const TRACK_BAR_INSET = 16;
+export const TRACK_PLAYHEAD_X = 42;
+const HOLD_END_GAP = 8;
 
-export interface Page { first: number; last: number }
-
-/**
- * Greedily packs measures into pages. `headerWidth(pageIndex)` is the clef/key/time
- * signature width at the start of each page (the time signature is on page 1 only).
- * Every page holds at least one measure.
- */
-export function paginate(noteCounts: number[], available: number, headerWidth: (page: number) => number): Page[] {
-  const pages: Page[] = [];
-  let first = 0;
-  while (first < noteCounts.length) {
-    let used = headerWidth(pages.length);
-    let last = first;
-    used += minMeasureWidth(noteCounts[first]);
-    while (last + 1 < noteCounts.length && used + minMeasureWidth(noteCounts[last + 1]) <= available) {
-      last++;
-      used += minMeasureWidth(noteCounts[last]);
+/** A score's horizontal positions are based on beats, never viewport width or current note. */
+export function scoreTrack(notes: readonly { measure?: number; duration?: Duration }[]) {
+  const measures: number[][] = [];
+  notes.forEach((note, index) => { (measures[note.measure ?? index] ??= []).push(index); });
+  const grouped = measures.filter(Boolean);
+  const slots: { x: number; holdEnd: number; measure: number }[] = [];
+  grouped.forEach((indices, measure) => {
+    let elapsed = measure * BEATS_PER_MEASURE;
+    for (const index of indices) {
+      const x = TRACK_PLAYHEAD_X + elapsed * TRACK_BEAT_PX;
+      const beats = DURATION_BEATS[notes[index].duration ?? 'w'];
+      slots[index] = { x, holdEnd: x + beats * TRACK_BEAT_PX - HOLD_END_GAP, measure };
+      elapsed += beats;
     }
-    pages.push({ first, last });
-    first = last + 1;
-  }
-  return pages;
+  });
+  return { measures: grouped, slots, width: TRACK_PLAYHEAD_X + grouped.length * TRACK_MEASURE_PX };
 }
 
-export function pageOf(pages: Page[], measure: number): number {
-  const index = pages.findIndex(page => measure >= page.first && measure <= page.last);
-  return index < 0 ? 0 : index;
+/** Move to the same playhead for every note, even if only the last note is left. */
+export function trackOffset(noteX: number | undefined) {
+  return Math.max(0, (noteX ?? TRACK_PLAYHEAD_X) - TRACK_PLAYHEAD_X);
+}
+
+export function inspectWindow(count: number, viewport: number, start: number) {
+  const length = Math.max(1, Math.floor(viewport / TRACK_MEASURE_PX));
+  const first = Math.min(Math.max(0, start), Math.max(0, count - 1));
+  return { first, last: Math.min(count - 1, first + length - 1), length };
 }

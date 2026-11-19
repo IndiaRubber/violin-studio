@@ -79,11 +79,16 @@ test('G major scale renders one sharp and low ledger-line notes', async ({ page 
   await expect(page.getByRole('img', { name: /key of G major, 4\/4.*G3 half note current, A3 half note, B3 half note, C4 half note/ })).toBeVisible();
 });
 
-test('narrow phone shows a window of measures that turns as the scale progresses', async ({ page }) => {
+test('narrow phone follows the score track without shrinking or scrolling the page', async ({ page }) => {
   await syntheticMic(page, 1000, 0);
   await page.setViewportSize({ width: 360, height: 740 });
   await open(page, 'D Major Scale');
-  await expect(page.getByText('Measures 1–2 of 8')).toBeVisible();
+  await expect(page.getByText('Measure 1 of 8')).toBeVisible();
+  const track = page.locator('.staff-track');
+  const score = page.locator('.staff svg');
+  await expect(score).toHaveAttribute('data-measures', '1-8');
+  await score.evaluate(node => { Object.assign(window, { scoreTrackSvg: node }); });
+  await expect(track).toHaveAttribute('data-offset', '0');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Quick check' }).click();
   await page.getByRole('button', { name: 'Start Listening' }).click();
@@ -91,11 +96,26 @@ test('narrow phone shows a window of measures that turns as the scale progresses
   await page.waitForTimeout(800); // let the intentional scroll-into-view on Start finish
   const scrollBefore = await page.evaluate(() => scrollY);
   await playQuick(page, ['D4', 'E4', 'F♯4', 'G4']);
-  await expect(page.getByText(/Measures 3–\d of 8/)).toBeVisible();
+  await expect(page.getByText('Measure 3 of 8')).toBeVisible();
+  await expect(track).toHaveAttribute('data-offset', '224');
+  expect(await score.evaluate(node => node === (window as unknown as { scoreTrackSvg: Element }).scoreTrackSvg)).toBe(true);
+  expect(await score.locator('[data-score-note]').evaluateAll(nodes => nodes.slice(0, 5).map(node => node.getAttribute('data-note-x')))).toEqual(['42', '98', '154', '210', '266']);
+  // Check the engraving itself, not just coordinates declared by the layout.
+  await expect.poll(() => score.evaluate(svg => {
+    const head = svg.querySelector('[data-note-state="current"] .vf-notehead')!.getBoundingClientRect();
+    const target = svg.closest('.staff-track-window')!.querySelector('.staff-playhead')!.getBoundingClientRect();
+    return Math.abs(head.left + head.width / 2 - (target.left + target.width / 2));
+  })).toBeLessThan(4);
+  const centers = await score.locator('.vf-notehead').evaluateAll(heads => heads.slice(0, 6).map(node => {
+    const box = node.getBoundingClientRect();
+    return box.left + box.width / 2;
+  }));
+  expect(centers).toHaveLength(6);
+  for (const [i, px] of centers.slice(1).entries()) expect(Math.abs(px - centers[i] - 56)).toBeLessThan(3);
   await expect(page.getByText('Note 5 of 15')).toBeVisible();
-  expect(Math.abs(await page.evaluate(() => scrollY) - scrollBefore)).toBeLessThan(2); // page turn does not scroll
+  expect(Math.abs(await page.evaluate(() => scrollY) - scrollBefore)).toBeLessThan(2); // score travel does not scroll the page
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: 'test-results/d-major-360-page2.png' });
+  await page.screenshot({ path: 'test-results/d-major-360-track.png' });
   await page.getByRole('button', { name: 'Stop Listening' }).click();
 });
 
@@ -195,4 +215,33 @@ test('changing exercise while listening releases the microphone and resets progr
   await expect(page.getByText('Note 1 of 15')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start Listening' })).toBeVisible();
   await expect(page.getByRole('img', { name: /G3 half note current/ })).toBeVisible();
+});
+
+test('an early stop retries the current note without rewinding the track or clearing completed notes', async ({ page }) => {
+  await syntheticMic(page, HZ.D4, 0);
+  await page.setViewportSize({ width: 360, height: 740 });
+  await open(page, 'D Major Scale');
+  for (let i = 0; i < 8; i++) await page.getByRole('button', { name: 'Faster' }).click();
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  for (const [i, hz] of [HZ.D4, HZ.E4].entries()) {
+    await setMic(page, hz);
+    await expect(page.getByText(`Note ${i + 2} of 15`)).toBeVisible({ timeout: 5000 });
+  }
+  const track = page.locator('.staff-track');
+  await expect(track).toHaveAttribute('data-offset', '112');
+  await expect(page.locator('[data-note-state="done"]')).toHaveCount(2);
+  await setMic(page, HZ['F♯4']);
+  const hold = page.getByRole('progressbar', { name: 'Note hold' });
+  await expect(hold).toHaveAttribute('aria-valuenow', /^[1-4][0-9]?$/, { timeout: 5000 });
+  await setMic(page, HZ['F♯4'], 0);
+  await expect(hold).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByText('Note 3 of 15')).toBeVisible();
+  await expect(track).toHaveAttribute('data-offset', '112');
+  await expect(page.locator('[data-note-state="done"]')).toHaveCount(2);
+  await expect(page.locator('[data-note-state="current"]')).toHaveAttribute('data-score-note', '2');
+  await page.getByRole('button', { name: 'Stop Listening' }).click();
+  await expect(track).toHaveAttribute('data-offset', '112');
+  await page.getByRole('button', { name: 'Restart exercise' }).click();
+  await expect(track).toHaveAttribute('data-offset', '0');
+  await expect(page.getByText('Note 1 of 15')).toBeVisible();
 });
