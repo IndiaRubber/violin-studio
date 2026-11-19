@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { PitchDetector } from 'pitchy';
-import { loadTunerSound, playbackRate, sampleForString, saveTunerSound, VIOLIN_SAMPLES, ViolinSamplePlayer } from './violin-samples';
+import { loadTunerSound, playbackRate, sampleForString, saveTunerSound, SAMPLE_CATALOG, VIOLIN_SAMPLES, ViolinSamplePlayer } from './violin-samples';
 
 function wav(path: string) {
   const bytes = readFileSync(path);
@@ -45,7 +45,7 @@ describe('bundled bowed violin clips', () => {
   it('measures the steady part of every shipped file and checks level, duration, and pitch span', () => {
     const detector = PitchDetector.forFloat32Array(4096);
     let total = 0;
-    for (const [id, sample] of Object.entries(VIOLIN_SAMPLES)) {
+    for (const [id, sample] of Object.entries(SAMPLE_CATALOG)) {
       const path = `public${sample.url}`;
       const { pcm, sampleRate } = wav(path);
       const pitches: number[] = [];
@@ -63,7 +63,7 @@ describe('bundled bowed violin clips', () => {
       expect(rms, id).toBeLessThan(0.055);
       total += readFileSync(path).length;
     }
-    expect(total).toBe(409912);
+    expect(total).toBe(1332214);
   });
 
   it('defaults to Tone and remembers Violin locally', () => {

@@ -125,12 +125,10 @@ test('reference tone plays on demand and cannot satisfy the exercise', async ({ 
   await setMic(page, 196, 0);
   await expect(page.locator('.tone-status')).toHaveCount(0, { timeout: 3000 });
   await expect(page.getByText('Note 1 of 4')).toBeVisible();
-  // Restarting the exercise while the reference plays keeps the microphone paused.
+  // Restarting the exercise cancels the stale reference and keeps its settling audio ignored.
   await page.getByRole('button', { name: /Hear note/ }).click();
   await setMic(page, 196, 1);
   await page.getByRole('button', { name: 'Restart exercise' }).click();
-  await page.waitForTimeout(1000);
-  await expect(page.getByText('Listening is paused while the reference note plays.')).toBeVisible();
   await setMic(page, 196, 0);
   await expect(page.locator('.tone-status')).toHaveCount(0, { timeout: 3000 });
   await expect(page.getByText('Note 1 of 4')).toBeVisible();

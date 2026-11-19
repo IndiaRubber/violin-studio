@@ -43,7 +43,14 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await expect(page.locator('.tone-status')).toHaveCount(0, { timeout: 4000 });
   // Milestone 2B: every library exercise is bundled and opens offline.
   await page.getByRole('button', { name: '← Exercises' }).click();
+  // This fingered excerpt has never been fetched in this context: the service worker supplies its first playback offline.
+  await page.getByRole('button', { name: /Move One Finger/ }).click();
+  await page.getByRole('group', { name: 'Hear note sound' }).getByRole('button', { name: 'Violin' }).click();
+  await page.getByRole('button', { name: /Hear note/ }).click();
+  await expect(page.getByText(/Playing violin reference E4/)).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: '← Exercises' }).click();
   await page.getByRole('button', { name: /Fingerboard Trainer/ }).click();
+  await expect(page.getByRole('group', { name: 'Hear note sound' }).getByRole('button', { name: 'Violin' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.fb-chart-row')).toHaveCount(6);
   await page.getByRole('button', { name: 'Staff + Fingerboard' }).click();
   await expect(page.locator('.staff svg')).toBeVisible();

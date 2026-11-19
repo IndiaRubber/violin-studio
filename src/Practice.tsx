@@ -10,7 +10,8 @@ import { loadPreferences, savePreferences, type NameHints } from './preferences'
 import { Staff } from './Staff';
 import type { PracticeEvaluation, ResetReason } from './sustain';
 import { clampTempo, MAX_BPM, MIN_BPM, noteMs, TEMPO_STEP, WHOLE_NOTE_BEATS } from './tempo';
-import { ReferenceTonePlayer } from './tone';
+import { ExerciseReferencePlayback, loadExerciseSound, saveExerciseSound, type ExerciseSound } from './exercise-sound';
+import { ExerciseSoundSelector } from './ExerciseSoundSelector';
 import { activePattern, demoFrequencies, patternVisible } from './pattern';
 import { PatternGuide } from './PatternGuide';
 import { PatternDemo, patternDemoMs } from './pattern-demo';
@@ -89,14 +90,18 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
   const [evaluation, setEvaluation] = useState<PracticeEvaluation>(() => initialPracticeEvaluation(tempo, notes[0]?.beats));
   const [lastReset, setLastReset] = useState<ResetReason>(null);
   const [audioDetails, setAudioDetails] = useState<AudioDiagnostics | null>(null);
-  const [toneState, setToneState] = useState<'idle' | 'playing' | 'settling'>('idle');
+  const [toneState, setToneState] = useState<'idle' | 'loading' | 'playing' | 'settling'>('idle');
+  const [toneSource, setToneSource] = useState<ExerciseSound>('tone');
+  const [sound, setSound] = useState(loadExerciseSound);
+  const [toneNotice, setToneNotice] = useState('');
   const [patternPlaying, setPatternPlaying] = useState(false);
   const audio = useRef<AudioSession | null>(null);
   const practice = useRef<PracticeSession>(null as unknown as PracticeSession);
   practice.current ??= new PracticeSession(notes, mode, tempo);
-  const player = useRef<ReferenceTonePlayer | null>(null);
+  const player = useRef<ExerciseReferencePlayback | null>(null);
   const patternDemo = useRef<PatternDemo | null>(null);
   const settleTimer = useRef<number | undefined>(undefined);
+  const noticeTimer = useRef<number | undefined>(undefined);
   const toneGeneration = useRef(0);
   const generation = useRef(0);
   const published = useRef({ at: -Infinity, key: '' });
@@ -125,8 +130,20 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     window.clearTimeout(settleTimer.current);
     settleTimer.current = window.setTimeout(() => setToneState('idle'), REFERENCE_TONE.settleMs);
   };
+  const stopReference = () => {
+    const active = player.current?.playing || toneState === 'settling';
+    toneGeneration.current++;
+    player.current?.stop();
+    window.clearTimeout(settleTimer.current);
+    window.clearTimeout(noticeTimer.current);
+    setToneNotice('');
+    if (active) practice.current.suppress(performance.now() + REFERENCE_TONE.settleMs);
+    setToneState(active ? 'settling' : 'idle');
+    if (active) settleTimer.current = window.setTimeout(() => setToneState('idle'), REFERENCE_TONE.settleMs);
+  };
   const stopListening = () => {
     stopPatternDemo();
+    stopReference();
     generation.current++;
     audio.current?.stop(); audio.current = null;
     setListening(false); setStarting(false); setReading(null); setAudioDetails(null);
@@ -134,6 +151,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
   };
   const restartExercise = (nextNotes = notes, nextMode = mode) => {
     stopPatternDemo();
+    stopReference();
     const suppressedUntil = practice.current.suppressionEnd; // a playing reference tone must stay ignored
     practice.current = new PracticeSession(nextNotes, nextMode, tempo);
     if (suppressedUntil > performance.now()) practice.current.suppress(suppressedUntil);
@@ -145,9 +163,10 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
   useEffect(() => () => {
     generation.current++;
     audio.current?.stop();
-    player.current?.dispose();
+    player.current?.stop();
     patternDemo.current?.dispose();
     window.clearTimeout(settleTimer.current);
+    window.clearTimeout(noticeTimer.current);
   }, []);
   // Changing the string focus or A4 reference starts the exercise again with the new notes.
   const firstNotes = useRef(true);
@@ -193,10 +212,14 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
 
   const targetIndex = Math.min(evaluation.index, notes.length - 1);
   const target = notes[targetIndex];
-  const playReference = async () => {
+  const playReference = () => {
     stopPatternDemo();
+    if (player.current?.playing) { stopReference(); return; }
+    setError('');
     window.clearTimeout(settleTimer.current);
-    player.current ??= new ReferenceTonePlayer();
+    window.clearTimeout(noticeTimer.current);
+    setToneNotice('');
+    player.current ??= new ExerciseReferencePlayback();
     const toneToken = ++toneGeneration.current;
     const settle = () => {
       if (toneToken !== toneGeneration.current) return;
@@ -204,28 +227,30 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
       setToneState('settling');
       settleTimer.current = window.setTimeout(() => setToneState('idle'), REFERENCE_TONE.settleMs);
     };
-    if (player.current.playing) { player.current.stop(); return; }
-    try {
-      // Suppress first so no frame captured during start-up can count.
-      practice.current.suppress(performance.now() + REFERENCE_TONE.durationMs + REFERENCE_TONE.settleMs + 100);
-      setToneState('playing');
-      const duration = await player.current.play(target.frequency, settle);
+    // Infinity covers fetch/decode and any fallback; end/cancel replaces it with a bounded settling window.
+    practice.current.suppress(Infinity);
+    setToneState('loading');
+    void player.current.play(target, a4, sound, (phase, reason) => {
       if (toneToken !== toneGeneration.current) return;
-      practice.current.suppress(performance.now() + duration + REFERENCE_TONE.settleMs);
-    } catch {
+      if (phase === 'ended') { settle(); return; }
+      setToneState(phase === 'loading' ? 'loading' : 'playing');
+      if (phase !== 'loading') setToneSource(phase);
+      if (reason) {
+        setToneNotice(reason);
+        noticeTimer.current = window.setTimeout(() => setToneNotice(''), 4000);
+      }
+    }, () => {
       if (toneToken !== toneGeneration.current) return;
-      setToneState('idle');
+      settle();
       setError('The reference note could not play. Check that the device is not muted, then try again.');
-    }
+    });
   };
 
   const hearPattern = () => {
     const group = activePattern(exercise, evaluation.index) ?? exercise.patterns?.[0];
     if (!group) return;
     if (patternDemo.current?.playing) { stopPatternDemo(); return; }
-    toneGeneration.current++;
-    player.current?.dispose();
-    player.current = null;
+    stopReference();
     window.clearTimeout(settleTimer.current);
     setToneState('idle');
     const frequencies = demoFrequencies(notes, group);
@@ -299,11 +324,12 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     {showPattern && exercise.patterns && <PatternGuide groups={exercise.patterns} active={patternGroup} onHear={hearPattern} playing={patternPlaying} />}
     <div className={`feedback-grid${sustain ? ' score-feedback' : ''}`}>
       <div className="feedback-card target-card"><div><p className="eyebrow">Target</p><strong>{showTargetName ? target.name : '?'}</strong><small>{showTargetName ? `${target.frequency.toFixed(2)} Hz` : 'Read the staff'}</small>{showFingering && target.fingering && <small className="fingering-hint">{describeFingering(target.fingering)}</small>}</div>
-        <button type="button" className={`tone-button ${toneState !== 'idle' ? 'is-playing' : ''}`} onClick={() => void playReference()} aria-pressed={toneState === 'playing'}><span aria-hidden="true">{toneState === 'playing' ? '■' : '♪'}</span>{toneState === 'playing' ? 'Stop' : 'Hear note'}</button></div>
+        <div className="reference-actions"><button type="button" className={`tone-button ${toneState === 'playing' || toneState === 'loading' ? 'is-playing' : ''}`} onClick={playReference} aria-pressed={toneState === 'playing' || toneState === 'loading'}><span aria-hidden="true">{toneState === 'playing' || toneState === 'loading' ? '■' : '♪'}</span>{toneState === 'playing' || toneState === 'loading' ? 'Stop' : 'Hear note'}</button><ExerciseSoundSelector sound={sound} onChange={next => { stopReference(); setSound(next); saveExerciseSound(next); }} /></div></div>
       <div className="feedback-card"><p className="eyebrow">Detected</p><strong>{reading?.smoothHz && evaluation.state !== 'reference' ? frequencyToNote(reading.smoothHz, a4) : '—'}</strong><small>{evaluation.state === 'reference' ? 'Paused for reference' : reading?.reason === 'quiet' ? 'Insufficient signal' : reading?.reason === 'uncertain' || reading?.reason === 'outlier' ? 'Uncertain detection' : listening ? 'Listening' : 'Microphone off'}</small></div>
       {!sustain && <div className="feedback-card meter-card"><p className="eyebrow">Intonation <strong>{cents === null ? '—' : `${cents > 0 ? '+' : ''}${Math.round(cents)} cents`}</strong></p><div className="meter"><span className="center-line"/><span className="meter-needle" style={{ left: `${50 + meterCents / 120 * 100}%` }}/></div><div className="meter-labels"><span>Flat</span><span>In tune</span><span>Sharp</span></div></div>}
     </div>
-    {(toneState !== 'idle' || patternPlaying) && <p className="tone-status" role="status">{patternPlaying ? '♪ Playing the pattern — microphone paused throughout' : toneState === 'playing' ? `♪ Playing the reference ${showTargetName ? target.name : 'note'} — microphone paused` : 'Microphone resuming…'}</p>}
+    {(toneState !== 'idle' || patternPlaying) && <p className="tone-status" role="status">{patternPlaying ? '♪ Playing the pattern — microphone paused throughout' : toneState === 'loading' ? 'Loading violin reference — microphone paused' : toneState === 'playing' ? `♪ Playing ${toneSource === 'violin' ? 'violin ' : 'the '}reference ${showTargetName ? target.name : 'note'} — microphone paused` : 'Microphone resuming…'}</p>}
+    {toneNotice && <p className="tone-notice" role="status">{toneNotice}</p>}
     <p className="status" role="status">{feedback}</p>
     {error && <p className="error" role="alert">{error}</p>}
     <div className="practice-options">

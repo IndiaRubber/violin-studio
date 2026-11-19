@@ -367,6 +367,23 @@ main{width:calc(100% - 26px)}
 }
 @media(prefers-reduced-motion:no-preference){.fb-cell.done .fb-dot{animation:fb-success .28s ease-out}@keyframes fb-success{from{box-shadow:inset 0 0 0 4px #28775d}to{box-shadow:inset 0 0 0 0 transparent}}}
 
+/* One compact Hear note source choice in lessons and the trainer; tuner styling is separate. */
+.target-card>div:first-child{min-width:0}
+.reference-actions{display:flex;flex-direction:column;gap:5px;flex:0 0 96px}
+.reference-actions .tone-button{width:100%;min-height:44px;flex-direction:row;justify-content:center;gap:4px}
+.reference-actions .tone-button span{font-size:15px}
+.exercise-sound{display:flex;gap:2px;padding:2px;border:1px solid #bfc9c8;border-radius:9px;background:#f2eee8}
+.exercise-sound button{flex:1;min-width:0;min-height:38px;padding:2px;border:0;border-radius:6px;background:transparent;color:#344248;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.exercise-sound button[aria-pressed=true]{background:#fff;color:#8b4328;box-shadow:0 1px 3px #20313b26}
+.exercise-sound button:focus-visible{outline:2px solid #a34b29;outline-offset:1px}
+.tone-notice{font-size:13px;color:#684928;margin:4px 0 10px}
+@media(max-width:700px){
+  .target-card small{white-space:normal}
+  .reference-actions{flex-basis:78px}
+  .exercise-sound button{font-size:10px}
+  .practice .target-card>div:first-child small:first-of-type{font-size:11px;white-space:nowrap}
+}
+
 /* A hold starts at the current notehead and runs toward the next note or page edge. */
 .staff-stage{position:relative}
 .staff-stage.has-hold .staff{min-height:178px}

@@ -1,5 +1,15 @@
 # Real violin manual test plan
 
+## Exercise Hear note: Tone / Violin (acoustic and Android checks pending)
+
+1. On Android Chrome, compare Tone and Violin in **09A Close Pair on D**, **09B Low Second Turn**, and **09C Crossing Echoes**. Listen for a clear bowed reference on the suggested D or A string, including F natural versus F♯ and C natural versus C♯. Compare pitch against a trusted chromatic tuner at A4 = 440 and 442 Hz; recordings are corrected from their measured source pitches.
+2. In **05E Add the Fourth Finger**, compare the D-string fourth-finger A4 with the following open A4. The references should sound like two distinct recordings of the same pitch. The microphone cannot confirm which string or finger was used.
+3. Select Violin in one exercise, open another exercise and the Fingerboard Trainer, and reload. Confirm that choice persists there while the tuner retains its own Tone/Violin choice. Try an unsupported G-string fingered note and confirm Tone is identified as the fallback.
+4. While listening in Guided and Quick Check, play a reference through the phone speaker near the microphone. Confirm no match, hold time, or advancement accrues during sample loading, playback, fallback, or settling. Then play the note yourself and confirm recognition resumes. Cancel during loading, switch target, restart, and leave the screen; no old sound should start later.
+5. After **Available offline** appears, turn on airplane mode, relaunch, and make the first Violin playback of a D- or A-string fingered note. Check that it plays from cache. At 360px portrait, verify the selector and practice controls remain reachable.
+
+These steps require a real violin and Android audio hardware; synthetic browser tests cannot establish acoustic reference quality or speaker-to-microphone leakage on the device.
+
 ## Guided score and fingerboard tunes
 
 1. On a phone, open **09A Close Pair on D** from the trainer or library. Confirm that the staff and fingerboard highlight the same note and that the board can be hidden.

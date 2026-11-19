@@ -1,21 +1,33 @@
 // Offline preparation only. Original Iowa source files are never bundled.
-// Usage: node scripts/prepare-violin-samples.mjs <directory-with-source-aiffs>
+// Usage: node scripts/prepare-violin-samples.mjs <directory-with-source-aiffs> [--fingered]
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { PitchDetector } from 'pitchy';
 
-const clips = [
+const openClips = [
   { id: 'g3', original: 'Violin.arco.mf.sulG.G3B3.aiff', start: 2.75 },
   { id: 'd4', original: 'Violin.arco.mf.sulD.D4A4.aiff', start: 4.70 },
   { id: 'a4', original: 'Violin.arco.mf.sulA.A4B4.aiff', start: 5.45 },
   { id: 'e5', original: 'Violin.arco.mf.sulE.E5B5.aiff', start: 4.00 },
 ];
+const fingeredClips = [
+  { id: 'd-e4', original: 'Violin.arco.mf.sulD.D4A4.aiff', start: 21.65 },
+  { id: 'd-f4', original: 'Violin.arco.mf.sulD.D4A4.aiff', start: 41.10 },
+  { id: 'd-fs4', original: 'Violin.arco.mf.sulD.D4A4.aiff', start: 51.30 },
+  { id: 'd-g4', original: 'Violin.arco.mf.sulD.D4A4.aiff', start: 61.10 },
+  { id: 'd-a4', original: 'Violin.arco.mf.sulD.D4A4.aiff', start: 90.10 },
+  { id: 'a-b4', original: 'Violin.arco.mf.sulA.A4B4.aiff', start: 23.40 },
+  { id: 'a-c5', original: 'Violin.arco.mf.sulA.C5C6.aiff', start: 4.30 },
+  { id: 'a-cs5', original: 'Violin.arco.mf.sulA.C5C6.aiff', start: 25.60 },
+  { id: 'a-d5', original: 'Violin.arco.mf.sulA.C5C6.aiff', start: 34.80 },
+];
+const clips = process.argv.includes('--fingered') ? fingeredClips : openClips;
 const duration = 1.60;
 const sampleRate = 32000;
 const output = resolve('public/samples');
 const source = process.argv[2];
-if (!source) throw new Error('Pass the directory containing the four original Iowa AIFF files.');
+if (!source) throw new Error('Pass the directory containing the original Iowa AIFF files.');
 
 function ffmpeg(args) {
   const result = spawnSync('ffmpeg', ['-v', 'error', ...args], { maxBuffer: 4_000_000 });

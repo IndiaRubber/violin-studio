@@ -8,7 +8,8 @@ import type { PitchReading } from './pitch';
 import { PracticeSession } from './practice-session';
 import { PracticeControls } from './PracticeControls';
 import { Staff } from './Staff';
-import { ReferenceTonePlayer } from './tone';
+import { ExerciseReferencePlayback, loadExerciseSound, saveExerciseSound, type ExerciseSound } from './exercise-sound';
+import { ExerciseSoundSelector } from './ExerciseSoundSelector';
 
 type Scope = ViolinString | 'D+A';
 const emptyReading: PitchReading = { rawHz: null, smoothHz: null, clarity: 0, rms: 0, note: null, reason: 'quiet' };
@@ -33,13 +34,18 @@ export function FingerboardTrainer({ a4, onBack, onOpenLesson }: { a4: number; o
   const [progress, setProgress] = useState(0);
   const [state, setState] = useState('quiet');
   const [demo, setDemo] = useState(false);
+  const [sound, setSound] = useState(loadExerciseSound);
+  const [toneSource, setToneSource] = useState<ExerciseSound>('tone');
+  const [tonePhase, setTonePhase] = useState<'idle' | 'loading' | 'playing' | 'settling'>('idle');
+  const [toneNotice, setToneNotice] = useState('');
   const [last, setLast] = useState<Position | null>(null);
   const audio = useRef<AudioSession | null>(null);
-  const player = useRef<ReferenceTonePlayer | null>(null);
+  const player = useRef<ExerciseReferencePlayback | null>(null);
   const session = useRef<PracticeSession | null>(null);
   const generation = useRef(0);
   const toneGeneration = useRef(0);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousFind = useRef<string | undefined>(undefined);
   const findPool = useMemo(() => POSITIONS.filter(p => (scope === 'D+A' ? p.string === 'D' || p.string === 'A' : p.string === scope) && p.row !== 'four' && supported(p, a4)), [scope, a4]);
   const sequence = useMemo(() => mode === 'walk' ? string === 'D+A' ? combinedSequence() : walk(string, second) : mode === 'staff' ? staffSequence() : shuffled(findPool, seed, previousFind.current).slice(0, 6), [mode, string, second, findPool, seed]);
@@ -53,11 +59,18 @@ export function FingerboardTrainer({ a4, onBack, onOpenLesson }: { a4: number; o
   const stopTone = () => {
     const wasPlaying = demo || player.current?.playing || settleTimer.current !== null;
     toneGeneration.current++;
-    player.current?.dispose(); player.current = null;
+    player.current?.stop();
     if (settleTimer.current) clearTimeout(settleTimer.current);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = null;
+    setToneNotice('');
     settleTimer.current = null;
-    if (wasPlaying) session.current?.suppress(performance.now() + REFERENCE_TONE.settleMs);
-    setDemo(false);
+    if (wasPlaying) {
+      session.current?.suppress(performance.now() + REFERENCE_TONE.settleMs);
+      setDemo(true);
+      setTonePhase('settling');
+      settleTimer.current = setTimeout(() => { setDemo(false); setTonePhase('idle'); settleTimer.current = null; }, REFERENCE_TONE.settleMs);
+    } else { setDemo(false); setTonePhase('idle'); }
   };
   const stopListening = () => {
     generation.current++;
@@ -72,7 +85,7 @@ export function FingerboardTrainer({ a4, onBack, onOpenLesson }: { a4: number; o
     setProgress(0); setState('quiet'); setLast(null); setReading(emptyReading); setRevealed(false);
   };
   useEffect(() => { restart(); }, [notes]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => { generation.current++; toneGeneration.current++; audio.current?.stop(); player.current?.dispose(); if (settleTimer.current) clearTimeout(settleTimer.current); }, []);
+  useEffect(() => () => { generation.current++; toneGeneration.current++; audio.current?.stop(); player.current?.stop(); if (settleTimer.current) clearTimeout(settleTimer.current); if (noticeTimer.current) clearTimeout(noticeTimer.current); }, []);
 
   const start = async () => {
     if (starting || listening) return;
@@ -80,7 +93,6 @@ export function FingerboardTrainer({ a4, onBack, onOpenLesson }: { a4: number; o
     const token = ++generation.current;
     const capture = new AudioSession((next, now) => {
       if (token !== generation.current) return;
-      if (player.current?.playing) session.current?.suppress(now + REFERENCE_TONE.settleMs);
       const result = session.current?.evaluate(next, now);
       if (!result) return;
       setReading(next); setState(result.state);
@@ -100,26 +112,37 @@ export function FingerboardTrainer({ a4, onBack, onOpenLesson }: { a4: number; o
     catch (cause) { if (token === generation.current) { audio.current = null; setError(errorText(cause)); } }
     if (token === generation.current) setStarting(false);
   };
-  const hear = async () => {
+  const hear = () => {
     if (!target) return;
-    if (demo || player.current?.playing) { stopTone(); return; }
-    player.current ??= new ReferenceTonePlayer();
+    if (player.current?.playing) { stopTone(); return; }
+    setError('');
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = null;
+    player.current ??= new ExerciseReferencePlayback();
     const token = ++toneGeneration.current;
-    session.current?.suppress(performance.now() + REFERENCE_TONE.durationMs + REFERENCE_TONE.settleMs + 150);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    setToneNotice('');
+    session.current?.suppress(Infinity);
     setDemo(true); setState('reference'); setReading(emptyReading);
-    try {
-      const duration = await player.current.play(targetHz, () => {
-        if (token !== toneGeneration.current) return;
-        session.current?.suppress(performance.now() + REFERENCE_TONE.settleMs);
-        settleTimer.current = setTimeout(() => { if (token === toneGeneration.current) setDemo(false); }, REFERENCE_TONE.settleMs);
-      });
-      if (token === toneGeneration.current) session.current?.suppress(performance.now() + duration + REFERENCE_TONE.settleMs);
-    } catch { if (token === toneGeneration.current) { setDemo(false); setError('The reference note could not play. Try again.'); } }
+    setTonePhase(sound === 'violin' ? 'loading' : 'playing');
+    const settle = () => {
+      if (token !== toneGeneration.current) return;
+      session.current?.suppress(performance.now() + REFERENCE_TONE.settleMs);
+      setTonePhase('settling');
+      settleTimer.current = setTimeout(() => { if (token === toneGeneration.current) { setDemo(false); setTonePhase('idle'); } settleTimer.current = null; }, REFERENCE_TONE.settleMs);
+    };
+    void player.current.play(notes[Math.min(progress, notes.length - 1)], a4, sound, (phase, reason) => {
+      if (token !== toneGeneration.current) return;
+      if (phase === 'ended') { settle(); return; }
+      if (phase === 'loading') setTonePhase('loading');
+      else { setToneSource(phase); setTonePhase('playing'); }
+      if (reason) { setToneNotice(reason); noticeTimer.current = setTimeout(() => setToneNotice(''), 4000); }
+    }, () => { if (token === toneGeneration.current) { settle(); setError('The reference note could not play. Try again.'); } });
   };
   const changeMode = (next: FingerboardMode) => { if (mode !== next) { stopListening(); setMode(next); } };
   const changeScope = (next: Scope) => { if (scope !== next) { stopListening(); setScope(next); } };
   const nextFind = () => { previousFind.current = sequence.at(-1)?.id; setSeed(value => value + 1); };
-  const status = complete ? 'Sequence complete. Repeat whenever you like.' : demo ? 'Reference tone playing or settling. Microphone paused.' : !listening ? 'Start listening when you are ready.' : state === 'release' ? 'Good. Release briefly before the next note.' : state === 'matching' ? 'That pitch is steady. Keep playing.' : state === 'wrong' ? 'Different pitch. Find the target and try again.' : state === 'quiet' ? 'Waiting for a clear note.' : state === 'uncertain' || state === 'outlier' ? 'Uncertain sound. Try a steady note.' : 'Play the target note.';
+  const status = complete ? 'Sequence complete. Repeat whenever you like.' : demo ? tonePhase === 'loading' ? 'Loading violin reference. Microphone paused.' : tonePhase === 'settling' ? 'Reference finished. Microphone settling.' : `Playing ${toneSource === 'violin' ? 'violin' : 'Tone'} reference. Microphone paused.` : !listening ? 'Start listening when you are ready.' : state === 'release' ? 'Good. Release briefly before the next note.' : state === 'matching' ? 'That pitch is steady. Keep playing.' : state === 'wrong' ? 'Different pitch. Find the target and try again.' : state === 'quiet' ? 'Waiting for a clear note.' : state === 'uncertain' || state === 'outlier' ? 'Uncertain sound. Try a steady note.' : 'Play the target note.';
 
   return <section className="fingerboard-trainer">
     <div className="practice-heading"><button className="text-button" onClick={() => { stopTone(); stopListening(); onBack(); }}>← Exercises</button><span>Fingerboard Trainer</span></div>
@@ -144,9 +167,9 @@ export function FingerboardTrainer({ a4, onBack, onOpenLesson }: { a4: number; o
     <FingerboardChart mode={mode} sequence={sequence} progress={progress} target={target} a4={a4} names={names} fingers={fingers} hintLevel={hintLevel} revealed={revealed} showPosition={showPosition} />
     <p className="fb-chart-note" id="fb-spacing-info">Open notes sit above the nut. Below it, dots show relative fingertip spacing toward the bridge. Low 2 and high 2 are alternate spots for the same finger. “Out of range” means this microphone exercise cannot assess that pitch at A4 = {a4} Hz.</p>
     <div className="fb-progress"><strong>{complete ? 'Complete' : `Note ${progress + 1} of ${sequence.length}`}</strong><span>{progress} played</span></div>
-    <div className="feedback-grid"><div className="feedback-card target-card"><div><p className="eyebrow">Target</p><strong>{target ? spellPosition(target) : '—'}</strong><small>{target ? mode === 'find' && !revealed && hintLevel === 'memory' || mode === 'staff' && !showPosition ? 'Find its place on the chart' : `${target?.string} string · ${fingers ? fingerLabel(target!) : 'suggested finger hidden'}` : ''}</small></div><button className="tone-button" onClick={() => void hear()}>{demo ? 'Stop tone' : 'Hear note'}</button></div><div className="feedback-card"><p className="eyebrow">Detected</p><strong>{liveHz ? frequencyToNote(liveHz, a4) : '—'}</strong><small>{liveHz ? `${liveHz.toFixed(1)} Hz` : state === 'release' ? 'Waiting for next note' : listening ? 'Insufficient or uncertain signal' : 'Microphone off'}</small></div><div className="feedback-card meter-card"><p className="eyebrow">Intonation <strong>{cents === null ? '—' : `${Math.round(cents) > 0 ? '+' : ''}${Math.round(cents)} cents`}</strong></p><div className="meter"><span className="center-line"/><span className="meter-needle" style={{ left: `${50 + Math.max(-60, Math.min(60, cents ?? 0)) / 120 * 100}%` }}/></div><div className="meter-labels"><span>Flat</span><span>In tune</span><span>Sharp</span></div></div></div>
-    <p className="status" role="status">{status}</p>{last && <p className="fb-last">Last played: {spellPosition(last)} · suggested {last.string} string, {fingerLabel(last)}.</p>}{error && <p role="alert" className="error">{error}</p>}
-    <details className="help"><summary>How this trainer works</summary><p>Play acoustic violin notes steadily and in tune. The same written pitch can be produced in more than one place, such as A4 on the D string with finger 4 or the open A string. Pitch alone cannot verify the chosen position. Hear note plays a synthesized reference at the current A4 setting. The microphone pauses during playback and for a short settling period.</p></details>
+    <div className="feedback-grid"><div className="feedback-card target-card"><div><p className="eyebrow">Target</p><strong>{target ? spellPosition(target) : '—'}</strong><small>{target ? mode === 'find' && !revealed && hintLevel === 'memory' || mode === 'staff' && !showPosition ? 'Find its place on the chart' : `${target?.string} string · ${fingers ? fingerLabel(target!) : 'suggested finger hidden'}` : ''}</small></div><div className="reference-actions"><button className="tone-button" onClick={hear}>{demo && tonePhase !== 'settling' ? 'Stop tone' : 'Hear note'}</button><ExerciseSoundSelector sound={sound} onChange={next => { stopTone(); setSound(next); saveExerciseSound(next); }} /></div></div><div className="feedback-card"><p className="eyebrow">Detected</p><strong>{liveHz ? frequencyToNote(liveHz, a4) : '—'}</strong><small>{liveHz ? `${liveHz.toFixed(1)} Hz` : state === 'release' ? 'Waiting for next note' : listening ? 'Insufficient or uncertain signal' : 'Microphone off'}</small></div><div className="feedback-card meter-card"><p className="eyebrow">Intonation <strong>{cents === null ? '—' : `${Math.round(cents) > 0 ? '+' : ''}${Math.round(cents)} cents`}</strong></p><div className="meter"><span className="center-line"/><span className="meter-needle" style={{ left: `${50 + Math.max(-60, Math.min(60, cents ?? 0)) / 120 * 100}%` }}/></div><div className="meter-labels"><span>Flat</span><span>In tune</span><span>Sharp</span></div></div></div>
+    <p className="status" role="status">{status}</p>{toneNotice && <p className="tone-notice" role="status">{toneNotice}</p>}{last && <p className="fb-last">Last played: {spellPosition(last)} · suggested {last.string} string, {fingerLabel(last)}.</p>}{error && <p role="alert" className="error">{error}</p>}
+    <details className="help"><summary>How this trainer works</summary><p>Play acoustic violin notes steadily and in tune. The same written pitch can be produced in more than one place, such as A4 on the D string with finger 4 or the open A string. Pitch alone cannot verify the chosen position. Hear note uses Tone or a matching bowed-string excerpt at the current A4 setting. The microphone pauses during playback and for a short settling period.</p></details>
   </section>;
 }
 

@@ -30,7 +30,7 @@ const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^\"]+)"/g)].map(matc
 assert(assets.some(asset => asset.endsWith('.js')) && assets.some(asset => asset.endsWith('.css')));
 const sw = (await read('sw.js')).toString();
 for (const asset of ['index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', ...assets]) assert(sw.includes(asset), `${asset} missing from precache`);
-for (const id of ['g3', 'd4', 'a4', 'e5']) {
+for (const id of ['g3', 'd4', 'a4', 'e5', 'd-e4', 'd-f4', 'd-fs4', 'd-g4', 'd-a4', 'a-b4', 'a-c5', 'a-cs5', 'a-d5']) {
   const path = `samples/${id}.wav`;
   assert.equal((await read(path)).subarray(0, 4).toString(), 'RIFF');
   assert(sw.includes(path), `${path} missing from offline precache`);
