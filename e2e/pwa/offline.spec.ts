@@ -79,6 +79,12 @@ test('production app installs offline shell and keeps tuner and staff usable off
   await expect(page.locator('.score-hold-beat')).toHaveCount(2);
   await expect(page.locator('[data-position="D-high2"]')).toHaveClass(/active/);
   await expect(page.getByRole('button', { name: 'Restart exercise' })).toBeEnabled();
+  const metronome = page.getByRole('button', { name: 'Metronome', exact: true });
+  await metronome.click();
+  await expect(metronome).toHaveAttribute('data-pulse', 'true');
+  await expect(page.getByText('Click audio unavailable.', { exact: false })).toHaveCount(0);
+  await metronome.click();
+  await expect(metronome).toHaveAttribute('aria-pressed', 'false');
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Hear the note. Find your sound.' })).toBeVisible();
 });

@@ -159,7 +159,7 @@ export function FingerboardTrainer({ a4, onBack, onOpenLesson }: { a4: number; o
       {mode === 'find' && <button className="secondary" onClick={() => setRevealed(true)}>Reveal current position</button>}
       {mode === 'staff' && <label><input type="checkbox" checked={showPosition} onChange={e => setShowPosition(e.target.checked)} /> Show target position</label>}
     </div>
-    <PracticeControls scope="sequence" listening={listening} starting={starting} complete={complete}
+    <PracticeControls scope="sequence" listening={listening} starting={starting} complete={complete} metronomeBlocked={demo}
       onToggleListening={listening || starting ? stopListening : start} onRestart={restart}
       onRestartNote={() => { session.current?.restartNote(); setState('quiet'); setReading(emptyReading); }}
       onShuffle={complete && mode === 'find' ? nextFind : undefined} />

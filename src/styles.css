@@ -348,9 +348,19 @@ main{width:calc(100% - 26px)}
 .fb-chart-note{width:min(100%,26rem);font-size:13px;color:#52646a;line-height:1.4;margin:8px auto 16px}
 .fb-progress{display:flex;justify-content:space-between;gap:8px;margin:14px 0 8px;font-size:16px}
 .fb-last{color:#215d45;font-weight:700;font-size:14px}
-.practice-action-bar{display:flex;gap:8px;width:max-content;margin:10px auto 0;padding:6px;border:1px solid #ded7cb;border-radius:16px;background:#faf6ef}
+.practice-action-bar{position:relative;display:flex;gap:8px;width:max-content;margin:10px auto 0;padding:6px;border:1px solid #ded7cb;border-radius:16px;background:#faf6ef}
 .practice-action-bar button{display:grid;place-items:center;width:46px;min-height:46px;padding:0}
 .practice-action-bar button:disabled{opacity:.5;cursor:default}
+.practice-metronome{display:flex;gap:6px;align-items:center;padding-left:6px;border-left:1px solid #ded7cb}
+.practice-action-bar .metronome-toggle[aria-pressed=true]{color:#245340;background:#e3efe7;border-color:#49816b}
+.practice-action-bar .metronome-toggle[data-pulse=true]{color:#fff;background:#28694f;border-color:#28694f}
+.metronome-bpm span{display:grid;gap:1px;line-height:1.1;font-size:13px;font-variant-numeric:tabular-nums}
+.metronome-bpm small{font-size:9px;letter-spacing:.04em}
+.metronome-settings,.metronome-notice{position:absolute;z-index:1;right:0;bottom:calc(100% + 8px);width:max-content;max-width:calc(100vw - 24px);padding:12px;border:1px solid #ded7cb;border-radius:12px;background:#faf6ef;box-shadow:0 4px 18px #20313b26;color:#344248;font-size:14px}
+.metronome-settings{display:grid;gap:10px}
+.metronome-settings p{margin:0}
+.metronome-settings label{display:flex;gap:8px;align-items:center;min-height:44px;cursor:pointer}
+@media(max-width:375px){.practice-action-bar{gap:5px}.practice-metronome{gap:4px;padding-left:4px}}
 .fingerboard-trainer .score-card{margin:12px 0}
 .fingerboard-trainer .feedback-grid{margin-top:12px}
 .fingerboard-trainer .target-card small{white-space:normal}

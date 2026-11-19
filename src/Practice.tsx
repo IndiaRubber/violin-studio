@@ -304,6 +304,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     <div className="progress-label"><span>Note {Math.min(evaluation.index + 1, notes.length)} of {notes.length}</span><span>{evaluation.index} complete</span></div>
     <div className="progress-track"><div style={{ width: `${evaluation.index / notes.length * 100}%` }} /></div>
     <PracticeControls scope="exercise" listening={listening} starting={starting}
+      tempo={tempo} metronomeBlocked={toneState !== 'idle' || patternPlaying}
       onToggleListening={listening || starting ? stopListening : start}
       onRestartNote={restartNote} onRestart={() => restartExercise()} />
     <div className="score-card" ref={scoreCard}>

@@ -1,6 +1,9 @@
+import { PracticeMetronome } from './PracticeMetronome';
+
 /** Shared microphone and restart controls for the trainer and all scored exercises. */
-export function PracticeControls({ listening, starting, complete = false, scope, onToggleListening, onRestartNote, onRestart, onShuffle }: {
+export function PracticeControls({ listening, starting, complete = false, scope, tempo, metronomeBlocked, onToggleListening, onRestartNote, onRestart, onShuffle }: {
   listening: boolean; starting: boolean; complete?: boolean; scope: 'exercise' | 'sequence';
+  tempo?: number; metronomeBlocked?: boolean;
   onToggleListening: () => void; onRestartNote: () => void; onRestart: () => void; onShuffle?: () => void;
 }) {
   const listenLabel = starting ? 'Cancel microphone connection' : listening ? 'Stop Listening' : 'Start Listening';
@@ -18,6 +21,7 @@ export function PracticeControls({ listening, starting, complete = false, scope,
     {onShuffle && <button type="button" className="secondary" aria-label="New shuffle" title="New shuffle" onClick={onShuffle}>
       <PracticeIcon name="shuffle" />
     </button>}
+    <PracticeMetronome tempo={tempo} blocked={metronomeBlocked} complete={complete} />
   </div>;
 }
 

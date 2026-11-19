@@ -108,3 +108,10 @@ Use a conventional chromatic tuner as a reference. Tune the same real violin wit
 2. Turn on airplane mode and force-close/reopen the installed app. Confirm Home, the tuner, the treble-clef staff, and the open-string exercise render. With network off, grant microphone permission after **Start Listening** and verify live pitch processing; stop listening and confirm the microphone indicator clears.
 3. Switch from tuner to practice, rotate the device, lock/unlock the screen, and return from another app. Check that no stale **In tune** or **Listening** state remains after input is lost, and no second microphone session starts.
 4. Install one version, then release an update. Confirm the old version remains usable until **Update now** is chosen, the new version loads afterward, and it launches offline. Repeat after a rollback.
+
+## Practice metronome
+
+- On a phone, open a Guided lesson. Tap the metronome icon without starting the microphone. Check that it pulses and clicks steadily. Change the lesson tempo and confirm the BPM readout and beat change together.
+- Start Listening with the click running. Let at least four clicks through without playing: the current note must not advance. Play the requested note across two clicks and check that the normal hold and progression work. Repeat at normal phone speaker volume in the Fingerboard Trainer.
+- Turn off **Click sound** in the BPM settings. The pulse should keep going. In the trainer, check the 60 BPM default and try changing it. Start **Hear note** or **Hear pattern** while the click is running. Clicks should pause and return after the reference while the pulse continues.
+- Stop the metronome, leave the exercise, and background the app with it running. Confirm no clicks continue. Try it after an offline restart.
