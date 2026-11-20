@@ -43,7 +43,7 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Could not start the microphone. Check the input device and try again.';
 }
 
-function guidance(evaluation: PracticeEvaluation, mode: PracticeMode, listening: boolean, reset: ResetReason, mistake: SecondFingerMistake | null, hintVisible: boolean, challengeLocked: boolean, targetName: string): string {
+function guidance(evaluation: PracticeEvaluation, mode: PracticeMode, listening: boolean, reset: ResetReason, mistake: SecondFingerMistake | null, hintVisible: boolean, challengeLocked: boolean, targetName: string | null): string {
   if (!listening) return mode === 'sustain' ? 'Tap Hear note if you like, then Start Listening when you are ready.' : 'Start listening when you are ready.';
   const c = evaluation.cents;
   switch (evaluation.state) {
@@ -53,7 +53,10 @@ function guidance(evaluation: PracticeEvaluation, mode: PracticeMode, listening:
     case 'wavering': return 'Keep the bow moving and bring the pitch back to the note.';
     case 'matching': return mode === 'sustain' ? 'That’s the note — keep it steady…' : 'Hold it steady…';
     case 'wrong':
-      if (mistake && !challengeLocked) return hintVisible ? mistake.advice : `Hearing ${mistake.heard}. Check ${targetName} on the staff.`;
+      if (mistake && !challengeLocked) {
+        if (hintVisible) return targetName ? mistake.advice : mistake.placement;
+        return `Hearing ${mistake.heard}. Check ${targetName ?? 'the written note'} on the staff.`;
+      }
       if (reset) return 'The pitch moved away. Find the note again — no rush.';
       if (c !== null && Math.abs(c) <= 100) return c < 0 ? 'A little flat — move the pitch up.' : 'A little sharp — move the pitch down.';
       return 'Different note. Try the one on the staff.';
@@ -73,6 +76,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
   const [answerShown, setAnswerShown] = useState(false);
   const [cueHidden, setCueHidden] = useState(false);
   const [hintIndex, setHintIndex] = useState<number | null>(null);
+  const [hintOffer, setHintOffer] = useState<{ noteId: string; mistake: SecondFingerMistake } | null>(null);
   const showFingering = (!exercise.patternChallenge || answerShown) && (prefs.fingering[exercise.id] ?? exercise.fingeringByDefault);
   const showPattern = patternVisible(exercise, prefs.patterns[exercise.id], answerShown, cueHidden);
   useEffect(() => savePreferences(prefs), [prefs]);
@@ -160,7 +164,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     if (suppressedUntil > performance.now()) practice.current.suppress(suppressedUntil);
     published.current = { at: -Infinity, key: '' };
     attempts.current = new Map();
-    setHintIndex(null);
+    setHintIndex(null); setHintOffer(null);
     setHoldSamples([]); setReading(null);
     setEvaluation(initialPracticeEvaluation(tempo, nextNotes[0]?.beats)); setLastReset(null);
   };
@@ -181,6 +185,12 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     if (key === published.current.key && time - published.current.at < UI_INTERVAL_MS && !result.advanced) return;
     published.current = { at: time, key };
     setReading(next); setEvaluation(result);
+    if (result.advanced) { setHintIndex(null); setHintOffer(null); }
+    else if (result.state === 'wrong') {
+      const note = notes[result.index];
+      const mistake = note && alternateSecondFinger(note, next.smoothHz, a4);
+      if (mistake) setHintOffer(previous => previous?.noteId === note.id && previous.mistake.heard === mistake.heard ? previous : { noteId: note.id, mistake });
+    }
     setHoldSamples(samples => recordHoldSample(samples, result));
     if (result.reset) setLastReset(result.reset);
     else if (result.phase === 'hold' || result.advanced || result.state === 'matching') setLastReset(null);
@@ -283,7 +293,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     setEvaluation(e => ({ ...e, requiredMs: noteMs(e.beats || WHOLE_NOTE_BEATS, next), ...(e.phase === 'hold' ? { phase: 'find' as const, holdMs: 0, beat: 0, state: 'quiet' as const } : {}) }));
   };
   const changeMode = (next: PracticeMode) => { if (next === mode) return; setPrefs(p => ({ ...p, mode: next })); restartExercise(notes, next); };
-  const restartNote = () => { if (evaluation.phase === 'hold') countAttempt(evaluation.index); abandonHold(); setLastReset(null); };
+  const restartNote = () => { if (evaluation.phase === 'hold') countAttempt(evaluation.index); abandonHold(); setLastReset(null); setHintIndex(null); setHintOffer(null); };
 
   const sustain = mode === 'sustain';
   const cents = reading?.smoothHz && evaluation.state !== 'release' && evaluation.state !== 'reference' ? centsFromTarget(reading.smoothHz, target.frequency) : null;
@@ -293,11 +303,12 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
   const progress = holding && evaluation.requiredMs > 0 ? Math.min(1, evaluation.holdMs / evaluation.requiredMs) : 0;
   const seconds = (noteMs(beats, tempo) / 1000).toFixed(1).replace(/\.0$/, '');
   const challengeLocked = Boolean(exercise.patternChallenge && !answerShown);
-  const currentHintVisible = showFingering || !challengeLocked && hintIndex === evaluation.index;
+  const currentOffer = hintOffer?.noteId === target.id ? hintOffer.mistake : null;
+  const currentHintVisible = showFingering || !challengeLocked && Boolean(currentOffer) && hintIndex === evaluation.index;
   const mistake = evaluation.state === 'wrong' ? alternateSecondFinger(target, reading?.smoothHz ?? null, a4) : null;
-  const listenFeedback = guidance(evaluation, mode, listening, evaluation.phase === 'find' ? lastReset : null, mistake, currentHintVisible, challengeLocked, target.name);
-  const feedback = starting ? 'Connecting to the microphone…' : listenFeedback;
   const showTargetName = names === 'always';
+  const listenFeedback = guidance(evaluation, mode, listening, evaluation.phase === 'find' ? lastReset : null, mistake, currentHintVisible, challengeLocked, showTargetName ? target.name : null);
+  const feedback = starting ? 'Connecting to the microphone…' : listenFeedback;
   const labels = notes.map((note, i) => names === 'always' || (names === 'after' && i < evaluation.index) ? note.name : i < evaluation.index ? '✓' : i === evaluation.index ? 'Now' : '·');
   const fingering = showFingering ? notes.map(note => note.fingering ? fingeringLabel(note.fingering) : null) : null;
   const patternGroup = activePattern(exercise, evaluation.index);
@@ -339,7 +350,8 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     {(toneState !== 'idle' || patternPlaying) && <p className="tone-status" role="status">{patternPlaying ? '♪ Playing the pattern — microphone paused throughout' : toneState === 'loading' ? 'Loading violin reference — microphone paused' : toneState === 'playing' ? `♪ Playing ${toneSource === 'violin' ? 'violin ' : 'the '}reference ${showTargetName ? target.name : 'note'} — microphone paused` : 'Microphone resuming…'}</p>}
     {toneNotice && <p className="tone-notice" role="status">{toneNotice}</p>}
     <p className="status" role="status">{feedback}</p>
-    {mistake && !currentHintVisible && !challengeLocked && <button type="button" className="text-button" onClick={() => setHintIndex(evaluation.index)}>Show hint for this note</button>}
+    {currentOffer && !currentHintVisible && !challengeLocked && <button type="button" className="secondary" onClick={() => setHintIndex(evaluation.index)}>Show hint for this note</button>}
+    {currentOffer && currentHintVisible && !showFingering && !challengeLocked && (!listening || evaluation.state !== 'wrong') && <p className="hint-feedback">{showTargetName ? currentOffer.advice : currentOffer.placement}</p>}
     {error && <p className="error" role="alert">{error}</p>}
     <div className="practice-options">
       <fieldset><legend>Practice mode</legend><div className="segmented"><button type="button" aria-pressed={sustain} onClick={() => changeMode('sustain')}>Guided: find &amp; hold</button><button type="button" aria-pressed={!sustain} onClick={() => changeMode('quick')}>Quick check</button></div></fieldset>

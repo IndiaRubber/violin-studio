@@ -46,6 +46,7 @@ test('hidden fingering offers a current-note hint without saving it or revealing
   await page.goto('/');
   await page.getByRole('button', { name: /D-String Walk/ }).click();
   await page.getByRole('checkbox', { name: /Show suggested string & finger/ }).uncheck();
+  await page.getByRole('button', { name: 'Hidden', exact: true }).click();
   await page.getByRole('button', { name: 'Quick check' }).click();
   await page.getByRole('button', { name: 'Start Listening' }).click();
   for (const [i, hz] of [293.6648, 329.6276].entries()) {
@@ -53,18 +54,78 @@ test('hidden fingering offers a current-note hint without saving it or revealing
     await expect(page.getByText(`Note ${i + 2} of 7`)).toBeVisible({ timeout: 5000 });
   }
   await setMic(page, atCents(369.9944, -101));
-  await expect(page.getByText('Hearing F natural. Check F♯4 on the staff.')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('Hearing F natural. Check the written note on the staff.')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.target-card strong')).toHaveText('?');
   await expect(page.locator('.target-card .fingering-hint')).toHaveCount(0);
   await expect(page.locator('.note-hints.fingering')).toHaveCount(0);
   const saved = await page.evaluate(() => localStorage.getItem('violin-studio-practice'));
+  await setMic(page, 369.9944, 0);
+  await page.waitForTimeout(1200);
+  await expect(page.getByRole('button', { name: 'Show hint for this note' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show hint for this note' })).toBeInViewport();
   await page.getByRole('button', { name: 'Show hint for this note' }).click();
-  await expect(page.getByText('Hearing F natural. For F♯, place your second finger close to your third.')).toBeVisible();
+  await expect(page.getByText('Hearing F natural. Try placing your second finger close to your third.')).toBeVisible();
+  await expect(page.locator('.target-card strong')).toHaveText('?');
   await expect(page.locator('.target-card .fingering-hint')).toHaveText('D string · 2nd finger (high)');
   expect(await page.evaluate(() => localStorage.getItem('violin-studio-practice'))).toBe(saved);
+  await page.getByRole('button', { name: 'Stop Listening' }).click();
+  await expect(page.getByText('Hearing F natural. Try placing your second finger close to your third.')).toBeVisible();
+  await page.getByRole('button', { name: 'Start Listening' }).click();
   await setMic(page, 369.9944);
   await expect(page.getByText('Note 4 of 7')).toBeVisible({ timeout: 5000 });
   await expect(page.locator('.target-card .fingering-hint')).toHaveCount(0);
   await expect(page.locator('.note-hints.fingering')).toHaveCount(0);
+});
+
+test('After playing conceals the current target; a stopped mic keeps the offer until restart', async ({ page }) => {
+  await syntheticMic(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /A-String Walk/ }).click();
+  await page.getByRole('checkbox', { name: /Show suggested string & finger/ }).uncheck();
+  await page.getByRole('button', { name: 'After playing' }).click();
+  await page.getByRole('button', { name: 'Quick check' }).click();
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  for (const [i, hz] of [440, 493.8833].entries()) {
+    await setMic(page, hz);
+    await expect(page.getByText(`Note ${i + 2} of 7`)).toBeVisible({ timeout: 5000 });
+  }
+  await setMic(page, atCents(554.3653, -99));
+  await expect(page.getByText('Hearing C natural. Check the written note on the staff.')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.target-card strong')).toHaveText('?');
+  await page.getByRole('button', { name: 'Stop Listening' }).click();
+  await expect(page.getByRole('button', { name: 'Show hint for this note' })).toBeVisible();
+  await page.getByRole('button', { name: 'Show hint for this note' }).click();
+  await expect(page.getByText('Hearing C natural. Try placing your second finger close to your third.')).toBeVisible();
+  await expect(page.locator('.target-card strong')).toHaveText('?');
+  await page.getByRole('button', { name: 'Restart note' }).click();
+  await expect(page.getByText('Hearing C natural. Try placing your second finger close to your third.')).toHaveCount(0);
+  await expect(page.locator('.target-card .fingering-hint')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Show hint for this note' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  await setMic(page, atCents(554.3653, -101));
+  await expect(page.getByRole('button', { name: 'Show hint for this note' })).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: 'Restart exercise' }).click();
+  await expect(page.getByRole('button', { name: 'Show hint for this note' })).toHaveCount(0);
+  await expect(page.getByText('Note 1 of 7')).toBeVisible();
+});
+
+test('Hidden note names stay hidden with the suggested fingering enabled', async ({ page }) => {
+  await syntheticMic(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /D-String Walk/ }).click();
+  await page.getByRole('button', { name: 'Hidden', exact: true }).click();
+  await page.getByRole('button', { name: 'Quick check' }).click();
+  await page.getByRole('button', { name: 'Start Listening' }).click();
+  for (const [i, hz] of [293.6648, 329.6276].entries()) {
+    await setMic(page, hz);
+    await expect(page.getByText(`Note ${i + 2} of 7`)).toBeVisible({ timeout: 5000 });
+  }
+  await setMic(page, atCents(369.9944, -99));
+  await expect(page.getByText('Hearing F natural. Try placing your second finger close to your third.')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.target-card strong')).toHaveText('?');
+  await expect(page.locator('.target-card .fingering-hint')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show hint for this note' })).toHaveCount(0);
 });
 
 test('the pattern challenge keeps its answer locked before Show answer', async ({ page }) => {

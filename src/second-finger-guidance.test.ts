@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { findExercise, practiceNotes } from './curriculum';
+import { asPracticeNote, position } from './fingerboard';
 import { alternateSecondFinger } from './second-finger-guidance';
 
 describe('alternate second-finger guidance', () => {
@@ -24,5 +25,25 @@ describe('alternate second-finger guidance', () => {
   it('does not infer an alternate finger when the target has no second-finger suggestion', () => {
     const first = practiceNotes(findExercise('d-string-walk')!)[1];
     expect(alternateSecondFinger(first, first.frequency * 2 ** (-1 / 12), 440)).toBeNull();
+  });
+  it('spells high and low second-finger alternatives from the written staff note', () => {
+    for (const a4 of [415, 432, 440, 442, 466]) {
+      for (const [string, low, high, lowName, highName] of [
+        ['D', 'F natural', 'F♯', 'F natural', 'F♯'],
+        ['A', 'C natural', 'C♯', 'C natural', 'C♯'],
+        ['G', 'B♭', 'B natural', 'B♭', 'B natural'],
+      ] as const) {
+        const lowNote = asPracticeNote(position(string, 'low2'), a4);
+        const highNote = asPracticeNote(position(string, 'high2'), a4);
+        const down = alternateSecondFinger(highNote, lowNote.frequency, a4);
+        const up = alternateSecondFinger(lowNote, highNote.frequency, a4);
+        expect(down?.heard).toBe(low);
+        expect(down?.advice).toContain(`For ${highName},`);
+        expect(up?.heard).toBe(high);
+        expect(up?.advice).toContain(`For ${lowName},`);
+        expect(down?.placement).not.toContain('For ');
+        expect(up?.placement).not.toContain('For ');
+      }
+    }
   });
 });
