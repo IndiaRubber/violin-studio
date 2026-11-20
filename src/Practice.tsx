@@ -19,6 +19,7 @@ import { PracticeControls } from './PracticeControls';
 import { FingerboardChart } from './FingerboardChart';
 import { positionForNote } from './fingerboard';
 import { recordHoldSample, type HoldSample } from './score-hold';
+import { alternateSecondFinger, type SecondFingerMistake } from './second-finger-guidance';
 
 export interface PracticeSummary {
   exerciseId: string;
@@ -42,7 +43,7 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Could not start the microphone. Check the input device and try again.';
 }
 
-function guidance(evaluation: PracticeEvaluation, mode: PracticeMode, listening: boolean, reset: ResetReason): string {
+function guidance(evaluation: PracticeEvaluation, mode: PracticeMode, listening: boolean, reset: ResetReason, mistake: SecondFingerMistake | null, hintVisible: boolean, challengeLocked: boolean, targetName: string): string {
   if (!listening) return mode === 'sustain' ? 'Tap Hear note if you like, then Start Listening when you are ready.' : 'Start listening when you are ready.';
   const c = evaluation.cents;
   switch (evaluation.state) {
@@ -52,6 +53,7 @@ function guidance(evaluation: PracticeEvaluation, mode: PracticeMode, listening:
     case 'wavering': return 'Keep the bow moving and bring the pitch back to the note.';
     case 'matching': return mode === 'sustain' ? 'That’s the note — keep it steady…' : 'Hold it steady…';
     case 'wrong':
+      if (mistake && !challengeLocked) return hintVisible ? mistake.advice : `Hearing ${mistake.heard}. Check ${targetName} on the staff.`;
       if (reset) return 'The pitch moved away. Find the note again — no rush.';
       if (c !== null && Math.abs(c) <= 100) return c < 0 ? 'A little flat — move the pitch up.' : 'A little sharp — move the pitch down.';
       return 'Different note. Try the one on the staff.';
@@ -70,6 +72,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
   const tempo = prefs.tempos[exercise.id] ?? exercise.tempo;
   const [answerShown, setAnswerShown] = useState(false);
   const [cueHidden, setCueHidden] = useState(false);
+  const [hintIndex, setHintIndex] = useState<number | null>(null);
   const showFingering = (!exercise.patternChallenge || answerShown) && (prefs.fingering[exercise.id] ?? exercise.fingeringByDefault);
   const showPattern = patternVisible(exercise, prefs.patterns[exercise.id], answerShown, cueHidden);
   useEffect(() => savePreferences(prefs), [prefs]);
@@ -157,6 +160,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     if (suppressedUntil > performance.now()) practice.current.suppress(suppressedUntil);
     published.current = { at: -Infinity, key: '' };
     attempts.current = new Map();
+    setHintIndex(null);
     setHoldSamples([]); setReading(null);
     setEvaluation(initialPracticeEvaluation(tempo, nextNotes[0]?.beats)); setLastReset(null);
   };
@@ -288,7 +292,10 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
   const beats = target.beats ?? WHOLE_NOTE_BEATS;
   const progress = holding && evaluation.requiredMs > 0 ? Math.min(1, evaluation.holdMs / evaluation.requiredMs) : 0;
   const seconds = (noteMs(beats, tempo) / 1000).toFixed(1).replace(/\.0$/, '');
-  const listenFeedback = guidance(evaluation, mode, listening, evaluation.phase === 'find' ? lastReset : null);
+  const challengeLocked = Boolean(exercise.patternChallenge && !answerShown);
+  const currentHintVisible = showFingering || !challengeLocked && hintIndex === evaluation.index;
+  const mistake = evaluation.state === 'wrong' ? alternateSecondFinger(target, reading?.smoothHz ?? null, a4) : null;
+  const listenFeedback = guidance(evaluation, mode, listening, evaluation.phase === 'find' ? lastReset : null, mistake, currentHintVisible, challengeLocked, target.name);
   const feedback = starting ? 'Connecting to the microphone…' : listenFeedback;
   const showTargetName = names === 'always';
   const labels = notes.map((note, i) => names === 'always' || (names === 'after' && i < evaluation.index) ? note.name : i < evaluation.index ? '✓' : i === evaluation.index ? 'Now' : '·');
@@ -324,7 +331,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     </div>}
     {showPattern && exercise.patterns && <PatternGuide groups={exercise.patterns} active={patternGroup} onHear={hearPattern} playing={patternPlaying} />}
     <div className={`feedback-grid${sustain ? ' score-feedback' : ''}`}>
-      <div className="feedback-card target-card"><div><p className="eyebrow">Target</p><strong>{showTargetName ? target.name : '?'}</strong><small>{showTargetName ? `${target.frequency.toFixed(2)} Hz` : 'Read the staff'}</small>{showFingering && target.fingering && <small className="fingering-hint">{describeFingering(target.fingering)}</small>}</div>
+      <div className="feedback-card target-card"><div><p className="eyebrow">Target</p><strong>{showTargetName ? target.name : '?'}</strong><small>{showTargetName ? `${target.frequency.toFixed(2)} Hz` : 'Read the staff'}</small>{currentHintVisible && target.fingering && <small className="fingering-hint">{describeFingering(target.fingering)}</small>}</div>
         <div className="reference-actions"><button type="button" className={`tone-button ${toneState === 'playing' || toneState === 'loading' ? 'is-playing' : ''}`} onClick={playReference} aria-pressed={toneState === 'playing' || toneState === 'loading'}><span aria-hidden="true">{toneState === 'playing' || toneState === 'loading' ? '■' : '♪'}</span>{toneState === 'playing' || toneState === 'loading' ? 'Stop' : 'Hear note'}</button><ExerciseSoundSelector sound={sound} onChange={next => { stopReference(); setSound(next); saveExerciseSound(next); }} /></div></div>
       <div className="feedback-card"><p className="eyebrow">Detected</p><strong>{reading?.smoothHz && evaluation.state !== 'reference' ? frequencyToNote(reading.smoothHz, a4) : '—'}</strong><small>{evaluation.state === 'reference' ? 'Paused for reference' : reading?.reason === 'quiet' ? 'Insufficient signal' : reading?.reason === 'uncertain' || reading?.reason === 'outlier' ? 'Uncertain detection' : listening ? 'Listening' : 'Microphone off'}</small></div>
       {!sustain && <div className="feedback-card meter-card"><p className="eyebrow">Intonation <strong>{cents === null ? '—' : `${cents > 0 ? '+' : ''}${Math.round(cents)} cents`}</strong></p><div className="meter"><span className="center-line"/><span className="meter-needle" style={{ left: `${50 + meterCents / 120 * 100}%` }}/></div><div className="meter-labels"><span>Flat</span><span>In tune</span><span>Sharp</span></div></div>}
@@ -332,6 +339,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
     {(toneState !== 'idle' || patternPlaying) && <p className="tone-status" role="status">{patternPlaying ? '♪ Playing the pattern — microphone paused throughout' : toneState === 'loading' ? 'Loading violin reference — microphone paused' : toneState === 'playing' ? `♪ Playing ${toneSource === 'violin' ? 'violin ' : 'the '}reference ${showTargetName ? target.name : 'note'} — microphone paused` : 'Microphone resuming…'}</p>}
     {toneNotice && <p className="tone-notice" role="status">{toneNotice}</p>}
     <p className="status" role="status">{feedback}</p>
+    {mistake && !currentHintVisible && !challengeLocked && <button type="button" className="text-button" onClick={() => setHintIndex(evaluation.index)}>Show hint for this note</button>}
     {error && <p className="error" role="alert">{error}</p>}
     <div className="practice-options">
       <fieldset><legend>Practice mode</legend><div className="segmented"><button type="button" aria-pressed={sustain} onClick={() => changeMode('sustain')}>Guided: find &amp; hold</button><button type="button" aria-pressed={!sustain} onClick={() => changeMode('quick')}>Quick check</button></div></fieldset>
