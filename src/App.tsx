@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { EXERCISES, findExercise, type Exercise } from './curriculum';
 import { Practice, type PracticeSummary } from './Practice';
 import { PwaStatus } from './PwaStatus';
@@ -47,7 +47,14 @@ export function App() {
   const [summary, setSummary] = useState<PracticeSummary | null>(null);
   // Remounting Practice gives each visit a fresh exercise and microphone session.
   const [visit, setVisit] = useState(0);
+  const listScroll = useRef(0);
+  // Change scroll only when changing screens, never as a note or hold progresses.
+  useLayoutEffect(() => {
+    if (screen === 'exercise') window.scrollTo(0, 0);
+    if (screen === 'select') window.scrollTo(0, listScroll.current);
+  }, [screen, visit]);
   const openExercise = (id: string, keepFocus = false) => {
+    if (screen === 'select') listScroll.current = window.scrollY;
     if (!keepFocus) setSummary(null);
     setExerciseId(id); setVisit(v => v + 1); setScreen('exercise');
   };

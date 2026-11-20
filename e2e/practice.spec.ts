@@ -191,3 +191,21 @@ test('practice screen fits a 360 px phone with touch-sized controls', async ({ p
   await page.screenshot({ path: 'test-results/practice-360-listening.png' });
   await page.getByRole('button', { name: 'Stop Listening' }).click();
 });
+
+test('a lesson opens at the top from a scrolled phone list and Exercises restores the list spot', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const lesson = page.getByRole('button', { name: /A-String Walk/ });
+  await lesson.scrollIntoViewIfNeeded();
+  const listY = await page.evaluate(() => window.scrollY);
+  expect(listY).toBeGreaterThan(0);
+  await lesson.click();
+  await expect(page.locator('.staff svg')).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.locator('.score-card')).toBeInViewport();
+  await page.getByRole('button', { name: '← Exercises' }).click();
+  await expect(lesson).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(listY);
+  await lesson.click();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
