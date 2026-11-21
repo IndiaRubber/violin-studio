@@ -4,7 +4,7 @@ import { addPracticeEvent, deletePracticeEvent, groupByDay, listPracticeEvents, 
 const timeLabel = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 const dateLabel = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
 
-export function DailyPractice({ onBack, onRecord, onOpenLesson }: { onBack: () => void; onRecord?: () => void; onOpenLesson?: () => void }) {
+export function DailyPractice({ onBack, onRecord, onOpenLesson, onOpenRecording }: { onBack: () => void; onRecord?: () => void; onOpenLesson?: () => void; onOpenRecording?: (id: string) => void }) {
   const [events, setEvents] = useState<PracticeEvent[]>([]);
   const [today, setToday] = useState(() => localDay(new Date().toISOString()));
   const [busy, setBusy] = useState<string | null>(null);
@@ -40,6 +40,6 @@ export function DailyPractice({ onBack, onRecord, onOpenLesson }: { onBack: () =
     {error && <p className="error" role="alert">{error}</p>}
     <h2>Practice history</h2>
     {!loaded ? <p>Loading local history…</p> : groups.length === 0 ? <p>No entries yet. Begin whenever you like.</p> : groups.map(([day, items]) =>
-      <section className="history-day" key={day}><h3>{day === today ? 'Today' : dateLabel(day)}</h3><ul>{items.map(item => <li key={item.id}><time dateTime={item.completedAt}>{timeLabel(item.completedAt)}</time><span>{item.title}<small>{item.type === 'lesson' ? 'Lesson completed' : item.type === 'recording' ? 'Recording saved' : 'Warmup completed'}{item.durationMs !== undefined ? ` · ${Math.round(item.durationMs / 1000)} seconds` : ''}</small></span></li>)}</ul></section>)}
+      <section className="history-day" key={day}><h3>{day === today ? 'Today' : dateLabel(day)}</h3><ul>{items.map(item => <li key={item.id}><time dateTime={item.completedAt}>{timeLabel(item.completedAt)}</time><span>{item.title}<small>{item.type === 'lesson' ? 'Lesson completed' : item.type === 'recording' ? 'Recording saved' : 'Warmup completed'}{item.durationMs !== undefined ? ` · ${Math.round(item.durationMs / 1000)} seconds` : ''}</small></span>{item.recordingId && onOpenRecording && <button className="secondary" onClick={() => onOpenRecording(item.recordingId!)}>View recording</button>}</li>)}</ul></section>)}
   </section>;
 }

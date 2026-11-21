@@ -115,3 +115,34 @@ test('production PWA fits a narrow Android viewport', async ({ page }) => {
   await expect(page.locator('.tuner-graph')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test('daily history and saved recording remain available on a fresh offline launch', async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.getByText('Available offline')).toBeVisible({ timeout: 15000 });
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve, reject) => {
+      const open = indexedDB.open('violin-studio-practice-data', 2);
+      open.onupgradeneeded = () => {
+        if (!open.result.objectStoreNames.contains('events')) open.result.createObjectStore('events', { keyPath: 'id' });
+        if (!open.result.objectStoreNames.contains('recordings')) open.result.createObjectStore('recordings', { keyPath: 'id' });
+      };
+      open.onsuccess = () => {
+        const db = open.result, tx = db.transaction(['events', 'recordings'], 'readwrite');
+        const now = new Date().toISOString();
+        tx.objectStore('events').put({ id: 'offline-recording-event', type: 'recording', title: 'Open Strings recording', completedAt: now, recordingId: 'offline-recording', exerciseId: 'open-strings', durationMs: 1000 });
+        tx.objectStore('recordings').put({ id: 'offline-recording', title: 'Open Strings', createdAt: now, exerciseId: 'open-strings', durationMs: 1000, mimeType: 'video/webm', blob: new Blob(['offline-media'], { type: 'video/webm' }) });
+        tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => reject(tx.error);
+      };
+      open.onerror = () => reject(open.error);
+    });
+  });
+  await context.setOffline(true);
+  await page.reload();
+  await page.getByRole('button', { name: /Today’s Practice/ }).click();
+  await expect(page.getByText('Recording saved')).toBeVisible();
+  await page.getByRole('button', { name: 'View recording' }).click();
+  await expect(page.getByLabel('Recorded performance playback')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

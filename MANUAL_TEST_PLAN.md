@@ -1,5 +1,15 @@
 # Real violin manual test plan
 
+## Daily Practice and recorder: Android acceptance pending
+
+1. On Android Chrome, open the HTTPS app and leave Home untouched. It should not request a wake lock. Enter a lesson and the Fingerboard Trainer, leave the phone untouched long enough to test screen sleep, then return Home. Repeat with active tuner listening and recording. Toggle **Keep screen awake during practice** off and on, background/restore the app, and try battery saver. The status must never claim an active lock after denial or release.
+2. Check and undo each warmup. Confirm the displayed time is the actual completion time and the suggested minutes are not recorded as elapsed practice. Finish one lesson twice; verify two separate history rows. Cross local midnight if practical and confirm the new day groups separately. Reload and use airplane mode to confirm local history persists.
+3. Tap **Record Performance**. Verify camera and microphone permission occurs only after this action, the front-facing preview is correctly oriented, and both violin and bow fit. Cancel and check both browser capture indicators clear. Retry, start the visible three-second countdown, then confirm the large preview disappears and the score can be read and paged while video and audio capture continue. Stop early and repeat for the full 60-second automatic stop.
+4. Play back each take and check orientation, audio level, synchronization, and full one-minute integrity. Save, reload, reopen from history, download a file and play it outside the app, then delete the saved take. Test denied permission, interrupted capture, insufficient storage, and offline relaunch. If saving fails, confirm Download remains available and no recording history entry is added.
+5. Start a scored lesson microphone, then choose **Record Performance**. Confirm the scored mic session closes before camera capture begins and no notes advance during recording. Return to the lesson and verify normal scoring still works. Test at 390 × 844 portrait and 844 × 390 landscape with touch controls.
+
+Browser tests mock media and do not establish Android camera orientation, acoustic audio quality, storage persistence under device pressure, real wake-lock behavior, or reliable one-minute recording. Perform these steps on the target phone before acceptance.
+
 ## Exercise Hear note: Tone / Violin (acoustic and Android checks pending)
 
 1. On Android Chrome, compare Tone and Violin in **09A Close Pair on D**, **09B Low Second Turn**, and **09C Crossing Echoes**. Listen for a clear bowed reference on the suggested D or A string, including F natural versus F♯ and C natural versus C♯. Compare pitch against a trusted chromatic tuner at A4 = 440 and 442 Hz; recordings are corrected from their measured source pitches.

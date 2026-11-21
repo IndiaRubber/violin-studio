@@ -69,7 +69,7 @@ function guidance(evaluation: PracticeEvaluation, mode: PracticeMode, listening:
   }
 }
 
-export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, initialFocus = null }: { exercise: Exercise; a4: number; onBack: () => void; onComplete: (summary: PracticeSummary) => void; onOpenExercise?: (id: string) => void; initialFocus?: string | null }) {
+export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, onRecord, initialFocus = null }: { exercise: Exercise; a4: number; onBack: () => void; onComplete: (summary: PracticeSummary) => void; onOpenExercise?: (id: string) => void; onRecord?: () => void; initialFocus?: string | null }) {
   const [prefs, setPrefs] = useState(loadPreferences);
   const { mode, names } = prefs;
   const tempo = prefs.tempos[exercise.id] ?? exercise.tempo;
@@ -365,6 +365,7 @@ export function Practice({ exercise, a4, onBack, onComplete, onOpenExercise, ini
         else setPrefs(p => ({ ...p, patterns: { ...p.patterns, [exercise.id]: event.target.checked } }));
       }} /> Show finger pattern cue{exercise.patternChallenge && !answerShown ? ' (after Show answer)' : ''}</label>}
       {onOpenExercise && (exercise.id === 'pattern-move-shape' || exercise.id === 'pattern-crossing-change') && <button type="button" className="secondary" onClick={() => { stopListening(); onOpenExercise(exercise.id === 'pattern-move-shape' ? 'd-major-scale' : 'g-major-scale'); }}>Try {exercise.id === 'pattern-move-shape' ? 'D' : 'G'} Major Scale →</button>}
+      {onRecord && <button type="button" className="secondary" onClick={() => { stopListening(); onRecord(); }}>Record Performance</button>}
     </div>
     <details className="help"><summary>Reading this exercise</summary><dl>
       {exercise.instructions?.length ? <><dt>This exercise</dt>{exercise.instructions.map(line => <dd key={line}>{line}</dd>)}</> : null}

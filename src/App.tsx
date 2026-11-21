@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { EXERCISES, findExercise, type Exercise } from './curriculum';
 import { Practice, type PracticeSummary } from './Practice';
 import { PwaStatus } from './PwaStatus';
@@ -8,6 +8,9 @@ import { FingerboardTrainer } from './FingerboardTrainer';
 import { loadKeepAwake, saveKeepAwake, useScreenWake } from './wake-lock';
 import { DailyPractice } from './DailyPractice';
 import { addPracticeEvent, lessonEvent, type PracticeEvent } from './practice-history';
+import { PerformanceRecorder } from './performance-recorder';
+import { RecordingView } from './RecordingView';
+import { loadRecording } from './recording-store';
 
 const durationsOf = (exercise: Exercise) => {
   const kinds = new Set(exercise.measures.flat().map(note => note.duration));
@@ -44,13 +47,26 @@ function Completion({ summary, onAgain, onNext, onHome, historyState, onRetryHis
 }
 
 export function App() {
-  const [screen, setScreen] = useState<'select' | 'exercise' | 'complete' | 'tuner' | 'fingerboard' | 'daily'>('select');
+  const [screen, setScreen] = useState<'select' | 'exercise' | 'complete' | 'tuner' | 'fingerboard' | 'daily' | 'recording'>('select');
+  const recorderRef = useRef<PerformanceRecorder | null>(null);
+  recorderRef.current ??= new PerformanceRecorder();
+  const recorder = recorderRef.current;
+  const recorderState = useSyncExternalStore(recorder.subscribe, recorder.getSnapshot);
+  const [recordExerciseId, setRecordExerciseId] = useState(EXERCISES[0].id);
+  const [recordReturn, setRecordReturn] = useState<'daily' | 'exercise'>('daily');
+  const recordingNavigation = useRef(0);
+  useEffect(() => () => recorder.cancel(), [recorder]);
+  useEffect(() => {
+    const onVisibility = () => { if (document.hidden) recorder.handleHidden(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [recorder]);
   const [a4, setA4] = useState(loadReference);
   useEffect(() => saveReference(a4), [a4]);
   const [keepAwake, setKeepAwake] = useState(loadKeepAwake);
   useEffect(() => saveKeepAwake(keepAwake), [keepAwake]);
   const [tunerActive, setTunerActive] = useState(false);
-  const wakeWanted = screen === 'exercise' || screen === 'fingerboard' || screen === 'tuner' && tunerActive;
+  const wakeWanted = screen === 'exercise' || screen === 'fingerboard' || screen === 'tuner' && tunerActive || screen === 'recording' && (recorderState.phase === 'countdown' || recorderState.phase === 'recording');
   const wakeStatus = useScreenWake(wakeWanted, keepAwake);
   const [exerciseId, setExerciseId] = useState(EXERCISES[0].id);
   const exercise = findExercise(exerciseId) ?? EXERCISES[0];
@@ -84,6 +100,27 @@ export function App() {
     setSummary(result); setScreen('complete'); saveCompletion(event);
   };
   const goHome = () => setScreen('select');
+  const beginRecording = (id: string, returnTo: 'daily' | 'exercise') => {
+    recordingNavigation.current++;
+    setRecordExerciseId(id); setRecordReturn(returnTo); setScreen('recording');
+    void recorder.prepare(); // called only from a deliberate Record Performance action
+  };
+  const leaveRecording = () => {
+    recordingNavigation.current++;
+    recorder.cancel();
+    if (recordReturn === 'exercise') openExercise(recordExerciseId);
+    else setScreen('daily');
+  };
+  const viewRecording = async (id: string) => {
+    const navigation = ++recordingNavigation.current;
+    setRecordReturn('daily'); setScreen('recording');
+    try {
+      const saved = await loadRecording(id);
+      if (navigation !== recordingNavigation.current) return;
+      if (!saved) { recorder.setError('Saved recording was not found in local storage.'); return; }
+      setRecordExerciseId(saved.exerciseId); recorder.loadSaved(saved.id, saved.blob, saved.mimeType, saved.durationMs, saved.createdAt);
+    } catch { if (navigation === recordingNavigation.current) recorder.setError('Could not open the saved recording. Browser storage may be unavailable.'); }
+  };
   const nextIndex = EXERCISES.findIndex(e => e.id === exerciseId) + 1;
   const next = EXERCISES[nextIndex];
   return <div className="app-shell">
@@ -101,8 +138,9 @@ export function App() {
       </section>}
       {screen === 'tuner' && <Tuner onBack={goHome} a4={a4} onReferenceChange={setA4} onActiveChange={setTunerActive} />}
       {screen === 'fingerboard' && <FingerboardTrainer a4={a4} onBack={goHome} onOpenLesson={() => openExercise('board-close-pair-d')} />}
-      {screen === 'daily' && <DailyPractice onBack={goHome} onOpenLesson={goHome} />}
-      {screen === 'exercise' && <Practice key={visit} exercise={exercise} a4={a4} initialFocus={summary?.exerciseId === exercise.id ? summary.focus : null} onBack={goHome} onOpenExercise={id => openExercise(id)} onComplete={finishExercise} />}
+      {screen === 'daily' && <DailyPractice onBack={goHome} onOpenLesson={goHome} onRecord={() => beginRecording(EXERCISES[0].id, 'daily')} onOpenRecording={id => void viewRecording(id)} />}
+      {screen === 'recording' && <RecordingView controller={recorder} exercise={findExercise(recordExerciseId) ?? EXERCISES[0]} a4={a4} onExerciseChange={setRecordExerciseId} onBack={leaveRecording} />}
+      {screen === 'exercise' && <Practice key={visit} exercise={exercise} a4={a4} initialFocus={summary?.exerciseId === exercise.id ? summary.focus : null} onBack={goHome} onOpenExercise={id => openExercise(id)} onRecord={() => beginRecording(exercise.id, 'exercise')} onComplete={finishExercise} />}
       {screen === 'complete' && summary && <Completion summary={summary} historyState={historyState} onRetryHistory={() => { if (pendingHistory.current) saveCompletion(pendingHistory.current); }} onAgain={() => openExercise(exerciseId, true)} onNext={next ? () => openExercise(next.id) : null} onHome={goHome} />}
       {wakeWanted && keepAwake && wakeStatus !== 'off' && <p className="wake-status" role="status">{wakeStatus === 'active' ? 'Screen awake during practice' : wakeStatus === 'requesting' ? 'Requesting screen wake lock…' : wakeStatus === 'unavailable' ? 'Screen wake lock unavailable in this browser' : 'Screen may sleep; wake lock was not granted'}</p>}
     </main><PwaStatus /><footer>Local practice · No account or upload</footer>

@@ -1,7 +1,7 @@
 import type { PracticeSummary } from './Practice';
 
 export const HISTORY_DB = 'violin-studio-practice-data';
-export const HISTORY_VERSION = 1;
+export const HISTORY_VERSION = 2;
 export type PracticeEventType = 'warmup' | 'lesson' | 'recording';
 export interface PracticeEvent {
   id: string;
@@ -46,6 +46,7 @@ export function openPracticeDb(version = HISTORY_VERSION): Promise<IDBDatabase> 
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains('events')) db.createObjectStore('events', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('recordings')) db.createObjectStore('recordings', { keyPath: 'id' });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error('Could not open local practice storage.'));

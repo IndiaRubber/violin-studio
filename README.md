@@ -1,5 +1,13 @@
 # Violin Studio
 
+## Daily Practice and performance recording
+
+Open **Today’s Practice** from Home for three optional warmups and local history. Checking a warmup records its completion time; the suggested minutes are not counted as practice time. Uncheck an accidental completion to undo it. Finished lessons appear automatically as separate history entries, grouped by your device’s local date. History and recordings stay in this browser’s IndexedDB; clearing site data can erase them.
+
+**Record Performance** is available from Daily Practice and a lesson. Choose any bundled score, frame the front-camera preview, then tap **Start recording**. After a three-second countdown the camera preview gives way to a read-only score; use its page buttons while recording. Recording stops automatically at 60 seconds or when you tap **Stop recording**. Review the take, save it locally, download a backup, delete it, or retry. A history entry appears only after local saving succeeds. If saving fails, keep the review screen open and download the take. The recording uses its own camera and microphone session, so pitch scoring is paused during capture. It does not upload media.
+
+**Keep screen awake during practice** is on by default and can be changed on Home. Supported browsers request a screen wake lock during lessons, fingerboard training, active tuner listening, and recording. The lock is released when practice ends or the page is hidden, and requested again on return. Battery saver or browser policy may deny it; the app then says the screen may sleep. Wake lock does not allow background recording. Camera, microphone, and wake-lock behavior require a secure context such as HTTPS or localhost. Export important recordings because browser storage may be evicted.
+
 ## Guided score and fingerboard tunes
 
 The Guided hold line begins under the current note. Its ticks are beats, and the green line fills for the written duration at your chosen tempo. The pitch trace rises sharp and dips flat, leaving gaps when pitch cannot be measured. Quick check keeps its pitch-only timing.

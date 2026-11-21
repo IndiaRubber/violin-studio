@@ -31,6 +31,21 @@ h1{font-family:Newsreader,Georgia,serif;font-size:clamp(37px,5vw,58px);line-heig
 .history-day li{display:flex;gap:18px;padding:9px 0;border-top:1px solid #e9e8e2}
 .history-day time{min-width:80px;color:#596a74;font-variant-numeric:tabular-nums}
 .history-day li small{display:block;color:#677780;margin-top:2px}
+.history-day li .secondary{margin-left:auto;padding:6px 10px;min-height:44px}
+.recording-view{padding:24px 0 64px}
+.recording-view h1{font-size:clamp(30px,5vw,44px)}
+.recording-score-choice{display:grid;gap:6px;font-weight:700;max-width:480px;margin:16px 0}
+.recording-score-choice select{min-height:46px;border:1px solid #bfc9c8;border-radius:9px;padding:7px;background:#fff;color:#20313b}
+.camera-preview,.recording-playback{display:block;width:min(100%,640px);max-height:min(48vh,390px);background:#20313b;border-radius:14px;object-fit:contain}
+.recording-countdown{font-size:26px;font-weight:700;margin:18px 0}
+.recording-bar{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 14px;background:#fff0ed;border:2px solid #9a3228;border-radius:12px;margin:16px 0;color:#762820}
+.recording-bar strong{font-size:19px}
+.recording-bar button{margin-left:auto}
+.recording-view .score-card{margin-top:14px}
+.recording-confirm{padding:14px;border:1px solid #9a3228;border-radius:12px;background:#fff7f4}
+.recording-confirm button{margin:4px}
+@media(max-width:700px){.history-day li{flex-wrap:wrap}.history-day li .secondary{margin-left:0}.recording-bar{gap:8px}.recording-bar button{min-height:44px}}
+@media(max-height:420px) and (orientation:landscape){.camera-preview{max-height:42vh}.recording-view{padding-top:8px}.recording-view h1{font-size:28px;margin:4px 0}}
 .exercise-card{margin-top:44px;border:1px solid #d5dcd9;background:#fffdfa;border-radius:18px;padding:22px 26px;width:min(620px,100%);display:flex;align-items:center;gap:22px;text-align:left;box-shadow:0 8px 30px #22313b0a;color:#20313b}
 .exercise-card:hover{border-color:#a34b29;box-shadow:0 10px 32px #22313b18}
 .exercise-card strong{display:block;font-size:21px}
