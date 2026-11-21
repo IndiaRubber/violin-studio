@@ -5,6 +5,7 @@ import { PwaStatus } from './PwaStatus';
 import { loadReference, saveReference } from './reference';
 import { Tuner } from './Tuner';
 import { FingerboardTrainer } from './FingerboardTrainer';
+import { loadKeepAwake, saveKeepAwake, useScreenWake } from './wake-lock';
 
 const durationsOf = (exercise: Exercise) => {
   const kinds = new Set(exercise.measures.flat().map(note => note.duration));
@@ -42,6 +43,11 @@ export function App() {
   const [screen, setScreen] = useState<'select' | 'exercise' | 'complete' | 'tuner' | 'fingerboard'>('select');
   const [a4, setA4] = useState(loadReference);
   useEffect(() => saveReference(a4), [a4]);
+  const [keepAwake, setKeepAwake] = useState(loadKeepAwake);
+  useEffect(() => saveKeepAwake(keepAwake), [keepAwake]);
+  const [tunerActive, setTunerActive] = useState(false);
+  const wakeWanted = screen === 'exercise' || screen === 'fingerboard' || screen === 'tuner' && tunerActive;
+  const wakeStatus = useScreenWake(wakeWanted, keepAwake);
   const [exerciseId, setExerciseId] = useState(EXERCISES[0].id);
   const exercise = findExercise(exerciseId) ?? EXERCISES[0];
   const [summary, setSummary] = useState<PracticeSummary | null>(null);
@@ -67,15 +73,17 @@ export function App() {
       {screen === 'select' && <section className="welcome">
         <p className="eyebrow">A quiet place to practice</p><h1>Hear the note. Find your sound.</h1>
         <p>Play a real violin and follow the notes on the staff. Work through the exercises in order, or pick any one.</p>
+        <label className="home-setting"><input type="checkbox" checked={keepAwake} onChange={event => setKeepAwake(event.target.checked)} /> Keep screen awake during practice</label>
         <button className="exercise-card" onClick={() => setScreen('tuner')}><span className="card-icon">♮</span><span><strong>Instrument Tuner</strong><small>Violin strings or chromatic · No scoring</small></span><span aria-hidden="true">→</span></button>
         <button className="exercise-card" onClick={() => setScreen('fingerboard')}><span className="card-icon">♬</span><span><strong>Fingerboard Trainer</strong><small>Explore notes, find positions, and read from the staff</small></span><span aria-hidden="true">→</span></button>
         <h2 className="library-heading">Exercises</h2>
         <div className="library" role="list">{EXERCISES.map(e => <div role="listitem" key={e.id}>{e.id === 'pattern-move-one-finger' && <h3 className="library-section">Finger Patterns</h3>}{e.id === 'd-major-scale' && <h3 className="library-section">Scales &amp; tunes</h3>}{e.id === 'board-close-pair-d' && <h3 className="library-section">Fingerboard tunes</h3>}<ExerciseCard exercise={e} onOpen={() => openExercise(e.id)} /></div>)}</div>
       </section>}
-      {screen === 'tuner' && <Tuner onBack={goHome} a4={a4} onReferenceChange={setA4} />}
+      {screen === 'tuner' && <Tuner onBack={goHome} a4={a4} onReferenceChange={setA4} onActiveChange={setTunerActive} />}
       {screen === 'fingerboard' && <FingerboardTrainer a4={a4} onBack={goHome} onOpenLesson={() => openExercise('board-close-pair-d')} />}
       {screen === 'exercise' && <Practice key={visit} exercise={exercise} a4={a4} initialFocus={summary?.exerciseId === exercise.id ? summary.focus : null} onBack={goHome} onOpenExercise={id => openExercise(id)} onComplete={result => { setSummary(result); setScreen('complete'); }} />}
       {screen === 'complete' && summary && <Completion summary={summary} onAgain={() => openExercise(exerciseId, true)} onNext={next ? () => openExercise(next.id) : null} onHome={goHome} />}
+      {wakeWanted && keepAwake && wakeStatus !== 'off' && <p className="wake-status" role="status">{wakeStatus === 'active' ? 'Screen awake during practice' : wakeStatus === 'requesting' ? 'Requesting screen wake lock…' : wakeStatus === 'unavailable' ? 'Screen wake lock unavailable in this browser' : 'Screen may sleep; wake lock was not granted'}</p>}
     </main><PwaStatus /><footer>Local practice · No account or upload</footer>
   </div>;
 }

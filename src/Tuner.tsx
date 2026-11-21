@@ -17,7 +17,7 @@ type ToneState = { phase: 'loading'; name: string } | { phase: 'playing'; name: 
 const trailColor = (cents: number) => Math.abs(cents) <= TUNER_IN_TUNE_CENTS ? '#5fd39a' : Math.abs(cents) <= 25 ? '#e8c35c' : '#f08a5d';
 const prefersReducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export function Tuner({ onBack, a4, onReferenceChange }: { onBack: () => void; a4: number; onReferenceChange: (value: number) => void }) {
+export function Tuner({ onBack, a4, onReferenceChange, onActiveChange }: { onBack: () => void; a4: number; onReferenceChange: (value: number) => void; onActiveChange?: (active: boolean) => void }) {
   const [mode, setMode] = useState<TunerMode>('violin');
   const [auto, setAuto] = useState(false);
   const [stringId, setStringId] = useState('a4');
@@ -25,6 +25,7 @@ export function Tuner({ onBack, a4, onReferenceChange }: { onBack: () => void; a
   const [referenceError, setReferenceError] = useState('');
   const [listening, setListening] = useState(false);
   const [starting, setStarting] = useState(false);
+  useEffect(() => { onActiveChange?.(listening || starting); }, [listening, starting, onActiveChange]);
   const [error, setError] = useState('');
   const [reading, setReading] = useState<PitchReading | null>(null);
   const [displayHz, setDisplayHz] = useState<number | null>(null);

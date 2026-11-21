@@ -14,6 +14,9 @@ h1{font-family:Newsreader,Georgia,serif;font-size:clamp(37px,5vw,58px);line-heig
 .eyebrow{font-size:12px;letter-spacing:.17em;text-transform:uppercase;font-weight:700;color:#a34b29}
 .welcome{padding:clamp(70px,13vh,130px) 0;max-width:760px}
 .welcome>p:not(.eyebrow),.completion>p:not(.eyebrow){font-size:18px;line-height:1.55;color:#596a74;max-width:590px}
+.home-setting{display:flex;align-items:center;gap:10px;min-height:44px;margin-top:18px;color:#43555e;font-weight:600}
+.home-setting input{width:20px;height:20px;accent-color:#a34b29}
+.wake-status{font-size:13px;color:#596a74;text-align:center;margin:8px 0}
 .exercise-card{margin-top:44px;border:1px solid #d5dcd9;background:#fffdfa;border-radius:18px;padding:22px 26px;width:min(620px,100%);display:flex;align-items:center;gap:22px;text-align:left;box-shadow:0 8px 30px #22313b0a;color:#20313b}
 .exercise-card:hover{border-color:#a34b29;box-shadow:0 10px 32px #22313b18}
 .exercise-card strong{display:block;font-size:21px}
