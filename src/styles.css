@@ -17,6 +17,20 @@ h1{font-family:Newsreader,Georgia,serif;font-size:clamp(37px,5vw,58px);line-heig
 .home-setting{display:flex;align-items:center;gap:10px;min-height:44px;margin-top:18px;color:#43555e;font-weight:600}
 .home-setting input{width:20px;height:20px;accent-color:#a34b29}
 .wake-status{font-size:13px;color:#596a74;text-align:center;margin:8px 0}
+.daily-practice{padding:26px 0 60px;max-width:760px}
+.daily-practice .objective{max-width:640px}
+.warmup-list{display:grid;gap:12px;margin:24px 0}
+.warmup-card{display:flex;align-items:flex-start;gap:14px;padding:17px;background:#fffdfa;border:1px solid #d5dcd9;border-radius:14px;cursor:pointer}
+.warmup-card input{width:24px;height:24px;flex:none;accent-color:#28775d}
+.warmup-card strong,.warmup-card small{display:block}
+.warmup-card small{margin-top:5px;color:#596a74;line-height:1.4}
+.daily-actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 30px}
+.history-day{margin:20px 0;padding:12px 18px;background:#fffdfa;border:1px solid #e2e2da;border-radius:14px}
+.history-day h3{margin:4px 0 12px}
+.history-day ul{list-style:none;margin:0;padding:0}
+.history-day li{display:flex;gap:18px;padding:9px 0;border-top:1px solid #e9e8e2}
+.history-day time{min-width:80px;color:#596a74;font-variant-numeric:tabular-nums}
+.history-day li small{display:block;color:#677780;margin-top:2px}
 .exercise-card{margin-top:44px;border:1px solid #d5dcd9;background:#fffdfa;border-radius:18px;padding:22px 26px;width:min(620px,100%);display:flex;align-items:center;gap:22px;text-align:left;box-shadow:0 8px 30px #22313b0a;color:#20313b}
 .exercise-card:hover{border-color:#a34b29;box-shadow:0 10px 32px #22313b18}
 .exercise-card strong{display:block;font-size:21px}

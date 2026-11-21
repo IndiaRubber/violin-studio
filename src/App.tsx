@@ -6,6 +6,8 @@ import { loadReference, saveReference } from './reference';
 import { Tuner } from './Tuner';
 import { FingerboardTrainer } from './FingerboardTrainer';
 import { loadKeepAwake, saveKeepAwake, useScreenWake } from './wake-lock';
+import { DailyPractice } from './DailyPractice';
+import { addPracticeEvent, lessonEvent, type PracticeEvent } from './practice-history';
 
 const durationsOf = (exercise: Exercise) => {
   const kinds = new Set(exercise.measures.flat().map(note => note.duration));
@@ -21,7 +23,7 @@ function ExerciseCard({ exercise, onOpen }: { exercise: Exercise; onOpen: () => 
   </button>;
 }
 
-function Completion({ summary, onAgain, onNext, onHome }: { summary: PracticeSummary; onAgain: () => void; onNext: (() => void) | null; onHome: () => void }) {
+function Completion({ summary, onAgain, onNext, onHome, historyState, onRetryHistory }: { summary: PracticeSummary; onAgain: () => void; onNext: (() => void) | null; onHome: () => void; historyState: 'idle' | 'saving' | 'saved' | 'error'; onRetryHistory: () => void }) {
   const distinct = [...new Set(summary.notes)];
   const attempts = summary.retriedNotes === 0
     ? 'Every note was held on the first try.'
@@ -35,12 +37,14 @@ function Completion({ summary, onAgain, onNext, onHome }: { summary: PracticeSum
       {summary.mode === 'sustain' && <><dt>Attempts</dt><dd>{attempts}</dd></>}
     </dl>
     <p className="summary-note">This summary reflects pitch only. It does not judge bowing, posture, finger placement, or tone.</p>
+    <p role="status">{historyState === 'saving' ? 'Saving completion to local history…' : historyState === 'saved' ? 'Saved in local practice history.' : historyState === 'error' ? 'Could not save this completion to local history.' : ''}</p>
+    {historyState === 'error' && <button className="secondary" onClick={onRetryHistory}>Retry history save</button>}
     <div className="completion-actions"><button className="primary" onClick={onAgain}>{summary.exerciseId === 'pattern-spot-phrase' || summary.exerciseId === 'pattern-spot-change' ? 'Repeat with cue hidden' : 'Practice again'}</button>{onNext && <button className="secondary" onClick={onNext}>Next exercise</button>}<button className="secondary" onClick={onHome}>Back to exercises</button></div>
   </section>;
 }
 
 export function App() {
-  const [screen, setScreen] = useState<'select' | 'exercise' | 'complete' | 'tuner' | 'fingerboard'>('select');
+  const [screen, setScreen] = useState<'select' | 'exercise' | 'complete' | 'tuner' | 'fingerboard' | 'daily'>('select');
   const [a4, setA4] = useState(loadReference);
   useEffect(() => saveReference(a4), [a4]);
   const [keepAwake, setKeepAwake] = useState(loadKeepAwake);
@@ -51,6 +55,14 @@ export function App() {
   const [exerciseId, setExerciseId] = useState(EXERCISES[0].id);
   const exercise = findExercise(exerciseId) ?? EXERCISES[0];
   const [summary, setSummary] = useState<PracticeSummary | null>(null);
+  const [historyState, setHistoryState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const savedVisits = useRef(new Set<number>());
+  const pendingHistory = useRef<PracticeEvent | null>(null);
+  const saveCompletion = (event: PracticeEvent) => {
+    setHistoryState('saving');
+    void addPracticeEvent(event).then(() => { if (pendingHistory.current?.id === event.id) setHistoryState('saved'); })
+      .catch(() => { if (pendingHistory.current?.id === event.id) setHistoryState('error'); });
+  };
   // Remounting Practice gives each visit a fresh exercise and microphone session.
   const [visit, setVisit] = useState(0);
   const listScroll = useRef(0);
@@ -62,7 +74,14 @@ export function App() {
   const openExercise = (id: string, keepFocus = false) => {
     if (screen === 'select') listScroll.current = window.scrollY;
     if (!keepFocus) setSummary(null);
-    setExerciseId(id); setVisit(v => v + 1); setScreen('exercise');
+    setExerciseId(id); setVisit(v => v + 1); setHistoryState('idle'); pendingHistory.current = null; setScreen('exercise');
+  };
+  const finishExercise = (result: PracticeSummary) => {
+    if (savedVisits.current.has(visit)) return;
+    savedVisits.current.add(visit);
+    const event = lessonEvent(result);
+    pendingHistory.current = event;
+    setSummary(result); setScreen('complete'); saveCompletion(event);
   };
   const goHome = () => setScreen('select');
   const nextIndex = EXERCISES.findIndex(e => e.id === exerciseId) + 1;
@@ -73,6 +92,7 @@ export function App() {
       {screen === 'select' && <section className="welcome">
         <p className="eyebrow">A quiet place to practice</p><h1>Hear the note. Find your sound.</h1>
         <p>Play a real violin and follow the notes on the staff. Work through the exercises in order, or pick any one.</p>
+        <button className="exercise-card" onClick={() => setScreen('daily')}><span className="card-icon">◇</span><span><strong>Today’s Practice</strong><small>Warmups and local practice history</small></span><span aria-hidden="true">→</span></button>
         <label className="home-setting"><input type="checkbox" checked={keepAwake} onChange={event => setKeepAwake(event.target.checked)} /> Keep screen awake during practice</label>
         <button className="exercise-card" onClick={() => setScreen('tuner')}><span className="card-icon">♮</span><span><strong>Instrument Tuner</strong><small>Violin strings or chromatic · No scoring</small></span><span aria-hidden="true">→</span></button>
         <button className="exercise-card" onClick={() => setScreen('fingerboard')}><span className="card-icon">♬</span><span><strong>Fingerboard Trainer</strong><small>Explore notes, find positions, and read from the staff</small></span><span aria-hidden="true">→</span></button>
@@ -81,8 +101,9 @@ export function App() {
       </section>}
       {screen === 'tuner' && <Tuner onBack={goHome} a4={a4} onReferenceChange={setA4} onActiveChange={setTunerActive} />}
       {screen === 'fingerboard' && <FingerboardTrainer a4={a4} onBack={goHome} onOpenLesson={() => openExercise('board-close-pair-d')} />}
-      {screen === 'exercise' && <Practice key={visit} exercise={exercise} a4={a4} initialFocus={summary?.exerciseId === exercise.id ? summary.focus : null} onBack={goHome} onOpenExercise={id => openExercise(id)} onComplete={result => { setSummary(result); setScreen('complete'); }} />}
-      {screen === 'complete' && summary && <Completion summary={summary} onAgain={() => openExercise(exerciseId, true)} onNext={next ? () => openExercise(next.id) : null} onHome={goHome} />}
+      {screen === 'daily' && <DailyPractice onBack={goHome} onOpenLesson={goHome} />}
+      {screen === 'exercise' && <Practice key={visit} exercise={exercise} a4={a4} initialFocus={summary?.exerciseId === exercise.id ? summary.focus : null} onBack={goHome} onOpenExercise={id => openExercise(id)} onComplete={finishExercise} />}
+      {screen === 'complete' && summary && <Completion summary={summary} historyState={historyState} onRetryHistory={() => { if (pendingHistory.current) saveCompletion(pendingHistory.current); }} onAgain={() => openExercise(exerciseId, true)} onNext={next ? () => openExercise(next.id) : null} onHome={goHome} />}
       {wakeWanted && keepAwake && wakeStatus !== 'off' && <p className="wake-status" role="status">{wakeStatus === 'active' ? 'Screen awake during practice' : wakeStatus === 'requesting' ? 'Requesting screen wake lock…' : wakeStatus === 'unavailable' ? 'Screen wake lock unavailable in this browser' : 'Screen may sleep; wake lock was not granted'}</p>}
     </main><PwaStatus /><footer>Local practice · No account or upload</footer>
   </div>;
